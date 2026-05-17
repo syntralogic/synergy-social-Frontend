@@ -6,6 +6,18 @@ import { INIT_POSTS, TREND_TAGS, fmtNum } from '@/lib/data';
 import Avatar from '@/components/ui/Avatar';
 import { useStore } from '@/store/useStore';
 import { usersAPI, postsAPI, searchUsers } from '@/lib/api';
+import RealPostCard from '@/components/feed/RealPostCard';
+
+interface ApiPost {
+  id: string;
+  content: string;
+  postType: string;
+  media: { mediaUrl: string; mediaType: string }[];
+  author: { id: string; username: string; fullName: string; avatar?: string };
+  _count: { likes: number; comments: number; shares: number };
+  isLiked: boolean;
+  createdAt: string;
+}
 
 interface ApiUser {
   id: string;
@@ -23,18 +35,19 @@ export default function ExplorePage() {
   const [query, setQuery]           = useState('');
   const [searchResults, setSearchResults] = useState<ApiUser[]>([]);
   const [searching, setSearching]   = useState(false);
-  const [explorePosts, setExplorePosts] = useState<any[]>([]);
+  const [explorePosts, setExplorePosts] = useState<ApiPost[]>([]);
+  const [loading, setLoading] = useState(true);
 
   // Load explore posts on mount
   useEffect(() => {
+    setLoading(true);
     postsAPI.getExplore(1)
-      .then((res: any) => setExplorePosts(res.data || []))
-      .catch(() => setExplorePosts([]));
+      .then((res: any) => {
+        setExplorePosts(res.data || []);
+      })
+      .catch(() => setExplorePosts([]))
+      .finally(() => setLoading(false));
   }, []);
-
-  const imgPosts = explorePosts.filter((p: any) => p.media?.length > 0);
-  // Fallback to demo posts if API returns nothing
-  const displayImgPosts = imgPosts.length > 0 ? imgPosts : INIT_POSTS.filter(p => p.img);
 
   // Debounced search
   const doSearch = useCallback(async (q: string) => {
@@ -64,10 +77,46 @@ export default function ExplorePage() {
         await usersAPI.follow(u.id);
       }
     } catch {
-      // revert on error
       toggleFollow(u.id);
     }
   };
+
+  function handleLikeToggle(postId: string, liked: boolean) {
+    setExplorePosts(prev => prev.map(p =>
+      p.id === postId
+        ? { ...p, isLiked: liked, _count: { ...p._count, likes: p._count.likes + (liked ? 1 : -1) } }
+        : p
+    ));
+  }
+
+  function handleCommentAdded(postId: string, newCommentCount: number) {
+    setExplorePosts(prev => prev.map(p =>
+      p.id === postId
+        ? { ...p, _count: { ...p._count, comments: newCommentCount } }
+        : p
+    ));
+  }
+
+  function handlePostDelete(postId: string) {
+    setExplorePosts(prev => prev.filter(p => p.id !== postId));
+  }
+
+  function handleShare(postId: string) {
+    setExplorePosts(prev => prev.map(p =>
+      p.id === postId
+        ? { ...p, _count: { ...p._count, shares: p._count.shares + 1 } }
+        : p
+    ));
+  }
+
+  // Show loading state
+  if (loading && explorePosts.length === 0) {
+    return (
+      <div style={{ height:'100%', display:'flex', alignItems:'center', justifyContent:'center' }}>
+        <Loader2 size={32} style={{ animation:'spin 1s linear infinite', color:'var(--accent)' }} />
+      </div>
+    );
+  }
 
   return (
     <div style={{ height:'100%', overflowY:'auto', padding:'20px 20px' }}>
@@ -130,27 +179,32 @@ export default function ExplorePage() {
       )}
 
       <div style={{ maxWidth:900, margin:'0 auto', display:'grid', gridTemplateColumns:'1fr 300px', gap:24 }}>
-        {/* Photo grid */}
+        {/* Posts feed - using RealPostCard */}
         <div>
           <h2 style={{ fontFamily:'Syne, sans-serif', fontSize:16, fontWeight:700, color:'var(--text)', marginBottom:14, display:'flex', alignItems:'center', gap:6 }}>
             <TrendingUp size={15}/> Trending Posts
           </h2>
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:4 }}>
-            {displayImgPosts.map((p: any, i: number) => (
-              <motion.div key={p.id} initial={{ opacity:0, scale:0.95 }} animate={{ opacity:1, scale:1 }} transition={{ delay:i*0.05 }}
-                whileHover={{ scale:1.02, zIndex:2 }}
-                style={{ aspectRatio:'1', overflow:'hidden', borderRadius:6, cursor:'pointer', position:'relative' }}>
-                <img src={p.media?.[0]?.mediaUrl || p.img} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
-                <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top, rgba(0,0,0,.6) 0%, transparent 50%)', opacity:0, transition:'opacity 0.2s' }}
-                  onMouseEnter={e=>(e.currentTarget.style.opacity='1')} onMouseLeave={e=>(e.currentTarget.style.opacity='0')}>
-                  <div style={{ position:'absolute', bottom:8, left:8, fontSize:12, color:'white' }}>❤ {fmtNum(p._count?.likes || p.likes || 0)}</div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
+          {explorePosts.length === 0 ? (
+            <div style={{ textAlign:'center', padding:'40px 20px', color:'var(--text3)' }}>
+              <p>No posts yet</p>
+            </div>
+          ) : (
+            <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+              {explorePosts.map((post) => (
+                <RealPostCard
+                  key={post.id}
+                  post={post}
+                  onLikeToggle={handleLikeToggle}
+                  onCommentAdded={handleCommentAdded}
+                  onPostDelete={handlePostDelete}
+                  onShare={handleShare}
+                />
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Trending Tags only (no fake people list) */}
+        {/* Trending Tags only */}
         <div>
           <h2 style={{ fontFamily:'Syne, sans-serif', fontSize:16, fontWeight:700, color:'var(--text)', marginBottom:12 }}>Trending Tags</h2>
           <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>

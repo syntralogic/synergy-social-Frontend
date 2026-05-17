@@ -1,110 +1,344 @@
 'use client';
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, BadgeCheck } from 'lucide-react';
-import { Post, USERS, fmtNum } from '@/lib/data';
-import Avatar from '@/components/ui/Avatar';
-import { useStore } from '@/store/useStore';
+import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, BadgeCheck, Send } from 'lucide-react';
+import { postsAPI } from '@/lib/api';
+import { fmtNum } from '@/lib/data';
 
-interface Props { post: Post; }
+interface ApiPost {
+  id: string;
+  content: string;
+  postType: string;
+  media: { mediaUrl: string; mediaType: string }[];
+  author: { id: string; username: string; fullName: string; avatar?: string };
+  _count: { likes: number; comments: number; shares: number };
+  isLiked: boolean;
+  createdAt: string;
+}
 
-export default function PostCard({ post }: Props) {
-  const { toggleLike, toggleSave } = useStore(s => ({ toggleLike:s.toggleLike, toggleSave:s.toggleSave }));
-  const user = USERS.find(u => u.id === post.userId)!;
+interface Props {
+  post: ApiPost;
+  onLikeToggle?: (postId: string, liked: boolean) => void;
+  onCommentAdded?: (postId: string, newCommentCount: number) => void;
+}
+
+function timeAgo(dateStr: string) {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return 'Just now';
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
+}
+
+export default function RealPostCard({ post, onLikeToggle, onCommentAdded }: Props) {
   const [likeAnim, setLikeAnim] = useState(false);
   const [showComment, setShowComment] = useState(false);
   const [comment, setComment] = useState('');
+  const [commenting, setCommenting] = useState(false);
+  const [localCommentsCount, setLocalCommentsCount] = useState(post._count?.comments || 0);
+  
+  // Safety check for post.author
+  const authorFullName = post.author?.fullName || 'User';
+  const authorUsername = post.author?.username || 'user';
+  const authorAvatar = post.author?.avatar || null;
+  
+  const initials = authorFullName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
 
-  function handleLike() {
-    toggleLike(post.id);
+  async function handleLike() {
+    const newLiked = !post.isLiked;
     setLikeAnim(true);
     setTimeout(() => setLikeAnim(false), 400);
+    onLikeToggle?.(post.id, newLiked);
+    try {
+      if (newLiked) await postsAPI.like(post.id);
+      else await postsAPI.unlike(post.id);
+    } catch {
+      // revert optimistic update
+      onLikeToggle?.(post.id, !newLiked);
+    }
+  }
+
+  async function handleComment() {
+    if (!comment.trim()) {
+      alert('Please enter a comment');
+      return;
+    }
+    
+    setCommenting(true);
+    try {
+      const response = await postsAPI.comment(post.id, comment.trim());
+      console.log('Comment posted:', response);
+      
+      // Update local comments count
+      const newCount = localCommentsCount + 1;
+      setLocalCommentsCount(newCount);
+      
+      // Notify parent component
+      if (onCommentAdded) {
+        onCommentAdded(post.id, newCount);
+      }
+      
+      // Clear comment and close input
+      setComment('');
+      setShowComment(false);
+      
+      // Optional: Show success message
+      // alert('Comment posted successfully!');
+    } catch (error: any) {
+      console.error('Failed to post comment:', error);
+      alert(error?.message || 'Failed to post comment. Please try again.');
+    } finally {
+      setCommenting(false);
+    }
+  }
+
+  // Safety check - if post or author is missing, show nothing
+  if (!post || !post.author) {
+    return null;
   }
 
   return (
     <motion.div
-      initial={{ opacity:0, y:12 }}
-      animate={{ opacity:1, y:0 }}
-      whileHover={{ y:-1 }}
-      transition={{ duration:0.2 }}
-      style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:14, marginBottom:12, overflow:'hidden' }}
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -1 }}
+      transition={{ duration: 0.2 }}
+      style={{
+        background: 'var(--bg2)',
+        border: '1px solid var(--border)',
+        borderRadius: 16,
+        marginBottom: 12,
+        overflow: 'hidden'
+      }}
     >
       {/* Header */}
-      <div style={{ display:'flex', alignItems:'center', gap:10, padding:'14px 16px' }}>
-        <Avatar user={user} size="sm" />
-        <div style={{ flex:1 }}>
-          <div style={{ display:'flex', alignItems:'center', gap:5 }}>
-            <span style={{ fontSize:14, fontWeight:600, color:'var(--text)' }}>{user.name}</span>
-            {user.verified && <BadgeCheck size={14} color="var(--accent2)" fill="var(--accent2)" style={{flexShrink:0}}/>}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px' }}>
+        {authorAvatar ? (
+          <img
+            src={authorAvatar}
+            alt={authorFullName}
+            style={{ width: 38, height: 38, borderRadius: '50%', objectFit: 'cover' }}
+          />
+        ) : (
+          <div
+            style={{
+              width: 38,
+              height: 38,
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, var(--accent), var(--pink))',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 13,
+              fontWeight: 700,
+              color: 'white',
+              flexShrink: 0
+            }}
+          >
+            {initials}
           </div>
-          <div style={{ fontSize:12, color:'var(--text3)' }}>{user.handle} · {post.time}</div>
+        )}
+        <div style={{ flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <span
+              style={{
+                fontSize: 14,
+                fontWeight: 600,
+                color: 'var(--text)',
+                fontFamily: 'DM Sans, sans-serif'
+              }}
+            >
+              {authorFullName}
+            </span>
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--text3)' }}>
+            @{authorUsername} · {timeAgo(post.createdAt)}
+          </div>
         </div>
-        <button style={{ background:'none', border:'none', color:'var(--text3)', padding:4, borderRadius:6, cursor:'pointer' }}>
-          <MoreHorizontal size={16}/>
+        <button
+          style={{
+            background: 'none',
+            border: 'none',
+            color: 'var(--text3)',
+            padding: 4,
+            borderRadius: 6,
+            cursor: 'pointer'
+          }}
+        >
+          <MoreHorizontal size={16} />
         </button>
       </div>
 
-      {/* Image */}
-      {post.img && (
-        <div style={{ position:'relative', overflow:'hidden' }}>
-          <img src={post.img} alt="post" style={{ width:'100%', height:240, objectFit:'cover', display:'block' }} />
-          {post.type === 'video' && (
-            <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(0,0,0,.35)' }}>
-              <div style={{ width:48, height:48, borderRadius:'50%', background:'rgba(255,255,255,.9)', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                <div style={{ borderLeft:'16px solid #333', borderTop:'9px solid transparent', borderBottom:'9px solid transparent', marginLeft:4 }}/>
-              </div>
-            </div>
+      {/* Media */}
+      {post.media?.length > 0 && (
+        <div style={{ position: 'relative', overflow: 'hidden' }}>
+          {post.media[0].mediaType === 'VIDEO' ? (
+            <video
+              src={post.media[0].mediaUrl}
+              controls
+              style={{
+                width: '100%',
+                maxHeight: 300,
+                objectFit: 'cover',
+                display: 'block'
+              }}
+            />
+          ) : (
+            <img
+              src={post.media[0].mediaUrl}
+              alt="post"
+              style={{
+                width: '100%',
+                maxHeight: 300,
+                objectFit: 'cover',
+                display: 'block'
+              }}
+            />
           )}
         </div>
       )}
 
-      {/* Body */}
-      <div style={{ padding:'12px 16px 8px', fontSize:14, color:'var(--text2)', lineHeight:1.65 }}>
-        {post.text}{' '}
-        {post.tags.map(t => (
-          <span key={t} style={{ color:'var(--accent2)', cursor:'pointer', fontWeight:500 }}>#{t} </span>
-        ))}
+      {/* Content */}
+      {post.content && (
+        <div
+          style={{
+            padding: '12px 16px 8px',
+            fontSize: 14,
+            color: 'var(--text)',
+            lineHeight: 1.65,
+            fontFamily: 'DM Sans, sans-serif'
+          }}
+        >
+          {post.content}
+        </div>
+      )}
+
+      {/* Stats row */}
+      <div style={{ padding: '4px 16px 8px', display: 'flex', gap: 16 }}>
+        <span style={{ fontSize: 12, color: 'var(--text3)' }}>
+          {fmtNum(post._count?.likes || 0)} likes
+        </span>
+        <span style={{ fontSize: 12, color: 'var(--text3)' }}>
+          {fmtNum(localCommentsCount)} comments
+        </span>
+        <span style={{ fontSize: 12, color: 'var(--text3)' }}>
+          {fmtNum(post._count?.shares || 0)} shares
+        </span>
       </div>
 
       {/* Action bar */}
-      <div style={{ display:'flex', alignItems:'center', padding:'8px 14px 14px', gap:4 }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          padding: '8px 12px 12px',
+          gap: 2,
+          borderTop: '1px solid var(--border)'
+        }}
+      >
         <ActionBtn
-          icon={<Heart size={17} fill={post.liked ? 'var(--red)' : 'none'} color={post.liked ? 'var(--red)' : 'var(--text3)'} className={likeAnim ? 'animate-heart-pop' : ''}/>}
-          label={fmtNum(post.likes)}
-          active={post.liked}
+          icon={
+            <Heart
+              size={17}
+              fill={post.isLiked ? 'var(--red)' : 'none'}
+              color={post.isLiked ? 'var(--red)' : 'var(--text3)'}
+              style={{
+                transition: 'all 0.2s',
+                transform: likeAnim ? 'scale(1.4)' : 'scale(1)'
+              }}
+            />
+          }
+          label={fmtNum(post._count?.likes || 0)}
+          active={post.isLiked}
           activeColor="var(--red)"
           onClick={handleLike}
         />
         <ActionBtn
-          icon={<MessageCircle size={17} color="var(--text3)"/>}
-          label={fmtNum(post.comments)}
-          onClick={() => setShowComment(v=>!v)}
+          icon={<MessageCircle size={17} color="var(--text3)" />}
+          label={fmtNum(localCommentsCount)}
+          onClick={() => setShowComment(v => !v)}
         />
-        <ActionBtn icon={<Share2 size={17} color="var(--text3)"/>} label={fmtNum(post.shares)} />
-        <div style={{ flex:1 }}/>
         <ActionBtn
-          icon={<Bookmark size={17} fill={post.saved ? 'var(--accent)' : 'none'} color={post.saved ? 'var(--accent)' : 'var(--text3)'}/>}
-          onClick={() => toggleSave(post.id)}
+          icon={<Share2 size={17} color="var(--text3)" />}
+          label={fmtNum(post._count?.shares || 0)}
         />
+        <div style={{ flex: 1 }} />
+        <ActionBtn icon={<Bookmark size={17} color="var(--text3)" />} />
       </div>
 
       {/* Comment input */}
       <AnimatePresence>
         {showComment && (
           <motion.div
-            initial={{ height:0, opacity:0 }} animate={{ height:'auto', opacity:1 }} exit={{ height:0, opacity:0 }}
-            style={{ overflow:'hidden', borderTop:'1px solid var(--border)', padding:'10px 14px', display:'flex', gap:8 }}
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            style={{
+              overflow: 'hidden',
+              borderTop: '1px solid var(--border)',
+              padding: '10px 14px',
+              display: 'flex',
+              gap: 8
+            }}
           >
             <input
-              value={comment} onChange={e=>setComment(e.target.value)}
+              value={comment}
+              onChange={e => setComment(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter' && !commenting && comment.trim()) {
+                  handleComment();
+                }
+              }}
               placeholder="Write a comment…"
-              style={{ flex:1, background:'var(--bg3)', border:'1px solid var(--border)', borderRadius:20, padding:'8px 14px', color:'var(--text)', fontSize:13, outline:'none' }}
-              onFocus={e=>(e.target.style.borderColor='var(--accent)')}
-              onBlur={e=>(e.target.style.borderColor='var(--border)')}
+              disabled={commenting}
+              style={{
+                flex: 1,
+                background: 'var(--bg3)',
+                border: '1px solid var(--border)',
+                borderRadius: 20,
+                padding: '8px 14px',
+                color: 'var(--text)',
+                fontSize: 13,
+                outline: 'none',
+                fontFamily: 'DM Sans, sans-serif'
+              }}
+              onFocus={e => (e.target.style.borderColor = 'var(--accent)')}
+              onBlur={e => (e.target.style.borderColor = 'var(--border)')}
             />
-            <button onClick={()=>{ setComment(''); setShowComment(false); }}
-              style={{ padding:'8px 14px', background:'linear-gradient(135deg, var(--accent), var(--accent3))', border:'none', borderRadius:20, color:'white', fontSize:13, cursor:'pointer' }}>
-              Post
+            <button
+              onClick={handleComment}
+              disabled={commenting || !comment.trim()}
+              style={{
+                padding: '8px 14px',
+                background: 'linear-gradient(135deg, var(--accent), var(--accent3))',
+                border: 'none',
+                borderRadius: 20,
+                color: 'white',
+                fontSize: 13,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 5,
+                opacity: commenting || !comment.trim() ? 0.6 : 1
+              }}
+            >
+              {commenting ? (
+                <div
+                  style={{
+                    width: 10,
+                    height: 10,
+                    border: '2px solid rgba(255,255,255,.4)',
+                    borderTopColor: 'white',
+                    borderRadius: '50%',
+                    animation: 'spin .7s linear infinite'
+                  }}
+                />
+              ) : (
+                <Send size={12} />
+              )}
+              <span>Post</span>
             </button>
           </motion.div>
         )}
@@ -113,18 +347,52 @@ export default function PostCard({ post }: Props) {
   );
 }
 
-function ActionBtn({ icon, label, onClick, active=false, activeColor='var(--accent)' }: {
-  icon:React.ReactNode; label?:string; onClick?:()=>void; active?:boolean; activeColor?:string;
+function ActionBtn({
+  icon,
+  label,
+  onClick,
+  active = false,
+  activeColor = 'var(--accent)'
+}: {
+  icon: React.ReactNode;
+  label?: string;
+  onClick?: () => void;
+  active?: boolean;
+  activeColor?: string;
 }) {
   return (
-    <motion.button whileHover={{ scale:1.06 }} whileTap={{ scale:0.9 }} onClick={onClick}
-      style={{ background:'none', border:'none', display:'flex', alignItems:'center', gap:5, padding:'6px 8px', borderRadius:8, cursor:'pointer',
-        color: active ? activeColor : 'var(--text3)', fontSize:13, fontFamily:'DM Sans, sans-serif',
-      }}>
+    <motion.button
+      whileHover={{ scale: 1.06 }}
+      whileTap={{ scale: 0.9 }}
+      onClick={onClick}
+      style={{
+        background: 'none',
+        border: 'none',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 5,
+        padding: '6px 10px',
+        borderRadius: 8,
+        cursor: 'pointer',
+        color: active ? activeColor : 'var(--text3)',
+        fontSize: 13,
+        fontFamily: 'DM Sans, sans-serif'
+      }}
+    >
       {icon}
       {label && <span>{label}</span>}
     </motion.button>
   );
 }
 
-import React from 'react';
+// Add CSS animation for spinner if not already in your global CSS
+if (typeof document !== 'undefined') {
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  `;
+  document.head.appendChild(style);
+}
