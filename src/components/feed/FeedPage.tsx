@@ -20,6 +20,16 @@ interface ApiPost {
 
 const FEELINGS = ['😊 Happy','😂 Funny','😍 Loved','🔥 Excited','😎 Cool','🙏 Grateful','💪 Motivated','😴 Tired','🤔 Thinking','🎉 Celebrating'];
 
+// Helper function to get full avatar URL
+const getAvatarUrl = (avatar: string | undefined) => {
+  if (!avatar) return null;
+  if (avatar.startsWith('/uploads')) {
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+    return `${apiBase}${avatar}`;
+  }
+  return avatar;
+};
+
 export default function FeedPage() {
   const { currentUser } = useStore(s => ({ currentUser: s.currentUser }));
   const [posts, setPosts] = useState<ApiPost[]>([]);
@@ -70,13 +80,11 @@ export default function FeedPage() {
   const handleMediaSelect = async (file: File) => {
     if (!file) return;
     
-    // Validate file size (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
       setError('File size must be less than 10MB');
       return;
     }
     
-    // Validate file type
     const isImage = file.type.startsWith('image/');
     const isVideo = file.type.startsWith('video/');
     
@@ -89,7 +97,6 @@ export default function FeedPage() {
     setSelectedMedia(file);
     setMediaType(isImage ? 'image' : 'video');
     
-    // Create preview
     const preview = URL.createObjectURL(file);
     setMediaPreview(preview);
     setMediaUploading(false);
@@ -118,12 +125,10 @@ export default function FeedPage() {
       const response = await postsAPI.create(finalText || ' ', selectedMedia || undefined);
       console.log('Post created:', response);
       
-      // Add new post to the top
       if (response.data) {
         setPosts(prev => [response.data, ...prev]);
       }
       
-      // Clear form
       setNewText('');
       removeMedia();
       setFeeling(null);
@@ -157,7 +162,6 @@ export default function FeedPage() {
   }
 
   function handleShare(postId: string) {
-    // Update share count locally
     setPosts(prev => prev.map(p =>
       p.id === postId
         ? { ...p, _count: { ...p._count, shares: p._count.shares + 1 } }
@@ -185,32 +189,42 @@ export default function FeedPage() {
           }}
         >
           <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-            {/* Avatar */}
-            {currentUser?.avatar ? (
-              <img
-                src={currentUser.avatar}
-                alt=""
-                style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
-              />
-            ) : (
-              <div
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: '50%',
-                  background: 'linear-gradient(135deg, var(--accent), var(--pink))',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: 14,
-                  fontWeight: 700,
-                  color: 'white',
-                  flexShrink: 0
-                }}
-              >
-                {initials}
-              </div>
-            )}
+            {/* Avatar - FIXED */}
+            {(() => {
+              const avatarUrl = getAvatarUrl(currentUser?.avatar);
+              if (avatarUrl) {
+                return (
+                  <img
+                    src={avatarUrl}
+                    alt=""
+                    style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                );
+              } else {
+                return (
+                  <div
+                    style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: '50%',
+                      background: 'linear-gradient(135deg, var(--accent), var(--pink))',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: 14,
+                      fontWeight: 700,
+                      color: 'white',
+                      flexShrink: 0
+                    }}
+                  >
+                    {initials}
+                  </div>
+                );
+              }
+            })()}
             
             <div style={{ flex: 1 }}>
               <textarea
@@ -390,7 +404,6 @@ export default function FeedPage() {
             }}
           >
             <div style={{ display: 'flex', gap: 6 }}>
-              {/* Photo/Video button */}
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={mediaUploading}
@@ -430,7 +443,6 @@ export default function FeedPage() {
                 }}
               />
 
-              {/* Feeling button */}
               <button
                 onClick={() => setShowFeelings(s => !s)}
                 style={{

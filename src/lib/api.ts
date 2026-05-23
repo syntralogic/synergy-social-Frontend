@@ -117,6 +117,7 @@ export const postsAPI = {
   getFeed:    (page = 1, limit = 15) => apiFetch(`/posts/feed?page=${page}&limit=${limit}`),
   getExplore: (page = 1, limit = 15) => apiFetch(`/posts/explore?page=${page}&limit=${limit}`),
   getPost:    (postId: string) => apiFetch(`/posts/${postId}`),
+  getComments: (postId: string, page = 1, limit = 20) => apiFetch(`/comments/${postId}?page=${page}&limit=${limit}`),
   
   create: async (content: string, mediaFile?: File | null) => {
     let mediaUrl = null;
@@ -151,6 +152,9 @@ export const postsAPI = {
       }) 
     });
   },
+  
+  update: (postId: string, content: string) => 
+    apiFetch(`/posts/${postId}`, { method: 'PUT', body: JSON.stringify({ content }) }),
   
   like:       (postId: string) => apiFetch(`/posts/${postId}/like`, { method: 'POST' }),
   unlike:     (postId: string) => apiFetch(`/posts/${postId}/like`, { method: 'POST' }),

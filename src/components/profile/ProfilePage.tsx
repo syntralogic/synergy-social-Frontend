@@ -1,10 +1,11 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapPin, Link2, Calendar, BadgeCheck, Grid3X3, Heart, MessageCircle, Settings, Camera, Loader2, CheckCircle, X, Bookmark } from 'lucide-react';
+import { MapPin, Link2, Calendar, BadgeCheck, Grid3X3, Heart, MessageCircle, Settings, Camera, Loader2, CheckCircle, X, Bookmark, Trash2, Edit3 } from 'lucide-react';
 import { fmtNum } from '@/lib/data';
 import { usersAPI, postsAPI, apiFetch } from '@/lib/api';
 import { useStore } from '@/store/useStore';
+import RealPostCard from '@/components/feed/RealPostCard';
 
 interface ApiPost {
   id: string;
@@ -17,74 +18,139 @@ interface ApiPost {
   createdAt: string;
 }
 
+// Helper function to get full image URL
+const getImageUrl = (url: string | undefined) => {
+  if (!url) return null;
+  if (url.startsWith('/uploads')) {
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+    return `${apiBase}${url}`;
+  }
+  return url;
+};
+
 export default function ProfilePage() {
-  const [tab, setTab]           = useState<'posts'|'liked'|'saved'>('posts');
+  const [tab, setTab] = useState<'posts'|'liked'|'saved'>('posts');
   const [editOpen, setEditOpen] = useState(false);
-  const [myPosts, setMyPosts]   = useState<ApiPost[]>([]);
+  const [myPosts, setMyPosts] = useState<ApiPost[]>([]);
   const [likedPosts, setLikedPosts] = useState<ApiPost[]>([]);
   const [loadingPosts, setLoadingPosts] = useState(false);
   const [loadingLiked, setLoadingLiked] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [editingPost, setEditingPost] = useState<ApiPost | null>(null);
+  const [editContent, setEditContent] = useState('');
+  const [selectedPost, setSelectedPost] = useState<ApiPost | null>(null);
+  const [coverError, setCoverError] = useState(false);
+  const [avatarError, setAvatarError] = useState(false);
 
   const { currentUser, setUser } = useStore(s => ({ currentUser: s.currentUser, setUser: s.setUser }));
 
-  const [name, setName]     = useState(currentUser?.fullName || '');
-  const [bio, setBio]       = useState(currentUser?.bio      || '');
+  const [name, setName] = useState(currentUser?.fullName || '');
+  const [bio, setBio] = useState(currentUser?.bio || '');
   const [username, setUsername] = useState(currentUser?.username || '');
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
 
   // Avatar & cover upload
-  const [avatarUploading, setAvatarUploading]   = useState(false);
-  const [coverUploading, setCoverUploading]     = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [coverUploading, setCoverUploading] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
-  const coverInputRef  = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
 
   // Sync form when user loads
   useEffect(() => {
     if (currentUser) {
       setName(currentUser.fullName || '');
-      setBio(currentUser.bio       || '');
+      setBio(currentUser.bio || '');
       setUsername(currentUser.username || '');
     }
   }, [currentUser?.id]);
 
-  // Load my posts via user profile endpoint
-  useEffect(() => {
+  // Load my posts
+  const loadMyPosts = async () => {
     if (!currentUser) return;
     setLoadingPosts(true);
-    postsAPI.getFeed(1)
-      .then((res: any) => {
-        const all = res.data || [];
-        const mine = all.filter((p: ApiPost) => p.author?.id === currentUser.id);
-        setMyPosts(mine);
-      })
-      .catch(() => setMyPosts([]))
-      .finally(() => setLoadingPosts(false));
-  }, [currentUser?.id]);
+    try {
+      const res = await postsAPI.getFeed(1);
+      const all = res.data || [];
+      const mine = all.filter((p: ApiPost) => p.author?.id === currentUser.id);
+      setMyPosts(mine);
+    } catch (error) {
+      console.error('Error loading posts:', error);
+    } finally {
+      setLoadingPosts(false);
+    }
+  };
 
   // Load liked posts
-  useEffect(() => {
-    if (!currentUser || tab !== 'liked') return;
+  const loadLikedPosts = async () => {
+    if (!currentUser) return;
     setLoadingLiked(true);
-    postsAPI.getFeed(1)
-      .then((res: any) => {
-        const all = res.data || [];
-        const liked = all.filter((p: ApiPost) => p.isLiked === true);
-        setLikedPosts(liked);
-      })
-      .catch(() => setLikedPosts([]))
-      .finally(() => setLoadingLiked(false));
-  }, [currentUser?.id, tab]);
+    try {
+      const res = await postsAPI.getFeed(1);
+      const all = res.data || [];
+      const liked = all.filter((p: ApiPost) => p.isLiked === true);
+      setLikedPosts(liked);
+    } catch (error) {
+      console.error('Error loading liked posts:', error);
+    } finally {
+      setLoadingLiked(false);
+    }
+  };
 
-  const displayName   = currentUser?.fullName  || 'User';
-  const displayHandle = currentUser?.username  ? `@${currentUser.username}` : '';
-  const displayBio    = currentUser?.bio       || '';
-  const initials      = displayName.split(' ').map((w:string) => w[0]).join('').slice(0,2).toUpperCase();
+  useEffect(() => {
+    loadMyPosts();
+  }, [currentUser?.id]);
+
+  useEffect(() => {
+    if (tab === 'liked') {
+      loadLikedPosts();
+    }
+  }, [tab, currentUser?.id]);
+
+  // Delete post
+  const handleDeletePost = async (postId: string) => {
+    try {
+      await postsAPI.delete(postId);
+      setMyPosts(prev => prev.filter(p => p.id !== postId));
+      setDeleteConfirm(null);
+      setSelectedPost(null);
+    } catch (error) {
+      console.error('Error deleting post:', error);
+    }
+  };
+
+  // Edit post
+  const handleEditPost = async () => {
+    if (!editingPost || !editContent.trim()) return;
+    
+    try {
+      const response = await postsAPI.update(editingPost.id, editContent);
+      
+      if (response.success && response.data) {
+        setMyPosts(prev => prev.map(p => 
+          p.id === editingPost.id ? response.data : p
+        ));
+        if (selectedPost?.id === editingPost.id) {
+          setSelectedPost(response.data);
+        }
+      }
+      
+      setEditingPost(null);
+      setEditContent('');
+    } catch (error) {
+      console.error('Error editing post:', error);
+    }
+  };
+
+  const displayName = currentUser?.fullName || 'User';
+  const displayHandle = currentUser?.username ? `@${currentUser.username}` : '';
+  const displayBio = currentUser?.bio || '';
+  const initials = displayName.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase();
 
   const stats = [
-    { label:'Posts',     value: fmtNum(myPosts.length) },
-    { label:'Followers', value: fmtNum((currentUser as any)?.followersCount || (currentUser as any)?._count?.followers || 0) },
-    { label:'Following', value: fmtNum((currentUser as any)?.followingCount || (currentUser as any)?._count?.following || 0) },
+    { label: 'Posts', value: fmtNum(myPosts.length) },
+    { label: 'Followers', value: fmtNum((currentUser as any)?.followersCount || 0) },
+    { label: 'Following', value: fmtNum((currentUser as any)?.followingCount || 0) },
   ];
 
   const getMediaUrl = (mediaUrl: string) => {
@@ -95,9 +161,14 @@ export default function ProfilePage() {
     return mediaUrl;
   };
 
-  const uploadImage = async (file: File, type: 'avatar' | 'cover') => {
-    const setter = type === 'avatar' ? setAvatarUploading : setCoverUploading;
-    setter(true);
+  // Upload cover image - NO ALERT
+  const uploadCoverImage = async (file: File) => {
+    if (!file) return;
+    
+    if (file.size > 5 * 1024 * 1024) return;
+    if (!file.type.startsWith('image/')) return;
+    
+    setCoverUploading(true);
     try {
       const reader = new FileReader();
       const dataUrl: string = await new Promise((res, rej) => {
@@ -106,33 +177,65 @@ export default function ProfilePage() {
         reader.readAsDataURL(file);
       });
 
-      const field = type === 'avatar' ? 'avatar' : 'coverImage';
       const res = await apiFetch('/auth/profile', {
         method: 'PUT',
-        body: JSON.stringify({ [field]: dataUrl }),
+        body: JSON.stringify({ coverImage: dataUrl }),
       });
+      
       if (res?.data?.user) {
         setUser({ ...currentUser!, ...res.data.user });
-      } else {
-        setUser({ ...currentUser!, [field]: dataUrl });
       }
-    } catch {
-      const objectUrl = URL.createObjectURL(file);
-      const field = type === 'avatar' ? 'avatar' : 'coverImage';
-      setUser({ ...currentUser!, [field]: objectUrl });
+    } catch (error) {
+      console.error('Error uploading cover:', error);
     } finally {
-      setter(false);
+      setCoverUploading(false);
+    }
+  };
+
+  // Upload avatar image - NO ALERT
+  const uploadAvatarImage = async (file: File) => {
+    if (!file) return;
+    
+    if (file.size > 2 * 1024 * 1024) return;
+    if (!file.type.startsWith('image/')) return;
+    
+    setAvatarUploading(true);
+    try {
+      const reader = new FileReader();
+      const dataUrl: string = await new Promise((res, rej) => {
+        reader.onload = () => res(reader.result as string);
+        reader.onerror = rej;
+        reader.readAsDataURL(file);
+      });
+
+      const res = await apiFetch('/auth/profile', {
+        method: 'PUT',
+        body: JSON.stringify({ avatar: dataUrl }),
+      });
+      
+      if (res?.data?.user) {
+        setUser({ ...currentUser!, ...res.data.user });
+      }
+    } catch (error) {
+      console.error('Error uploading avatar:', error);
+    } finally {
+      setAvatarUploading(false);
     }
   };
 
   const handleSave = async () => {
-    setSaving(true); setSaveMsg(null);
+    setSaving(true);
+    setSaveMsg(null);
     try {
       const res = await usersAPI.updateProfile({ fullName: name, bio, username });
-      if (res?.data?.user) setUser({ ...currentUser!, ...res.data.user });
-      else setUser({ ...currentUser!, fullName: name, bio, username });
+      if (res?.data?.user) {
+        setUser({ ...currentUser!, ...res.data.user });
+      }
       setSaveMsg('Saved!');
-      setTimeout(() => { setSaveMsg(null); setEditOpen(false); }, 1200);
+      setTimeout(() => {
+        setSaveMsg(null);
+        setEditOpen(false);
+      }, 1200);
     } catch (e: any) {
       setSaveMsg(e.message || 'Failed to save.');
     } finally {
@@ -154,16 +257,65 @@ export default function ProfilePage() {
           : p
       ));
     }
+    if (selectedPost?.id === postId) {
+      setSelectedPost(prev => prev ? {
+        ...prev,
+        isLiked: liked,
+        _count: { ...prev._count, likes: prev._count.likes + (liked ? 1 : -1) }
+      } : null);
+    }
   }
 
-  const coverBg = (currentUser as any)?.coverImage
-    ? `url(${getMediaUrl((currentUser as any).coverImage)}) center/cover`
+  function handleCommentAdded(postId: string, newCommentCount: number) {
+    if (tab === 'posts') {
+      setMyPosts(prev => prev.map(p =>
+        p.id === postId
+          ? { ...p, _count: { ...p._count, comments: newCommentCount } }
+          : p
+      ));
+    }
+    if (selectedPost?.id === postId) {
+      setSelectedPost(prev => prev ? {
+        ...prev,
+        _count: { ...prev._count, comments: newCommentCount }
+      } : null);
+    }
+  }
+
+  function handlePostDelete(postId: string) {
+    setMyPosts(prev => prev.filter(p => p.id !== postId));
+    setSelectedPost(null);
+  }
+
+  function handleShare(postId: string) {
+    if (tab === 'posts') {
+      setMyPosts(prev => prev.map(p =>
+        p.id === postId
+          ? { ...p, _count: { ...p._count, shares: p._count.shares + 1 } }
+          : p
+      ));
+    }
+    if (selectedPost?.id === postId) {
+      setSelectedPost(prev => prev ? {
+        ...prev,
+        _count: { ...prev._count, shares: prev._count.shares + 1 }
+      } : null);
+    }
+  }
+
+  // Get cover image URL with full path
+  const coverImageUrl = getImageUrl((currentUser as any)?.coverImage);
+  const avatarUrl = getImageUrl(currentUser?.avatar);
+  
+  const coverBg = coverImageUrl && !coverError
+    ? `url(${coverImageUrl}) center/cover`
     : 'linear-gradient(135deg, var(--accent), var(--pink), var(--cyan))';
 
   // Render post grid item
   const PostGridItem = ({ post }: { post: ApiPost }) => {
     const [liked, setLiked] = useState(post.isLiked);
     const [likesCount, setLikesCount] = useState(post._count.likes);
+    const [showActions, setShowActions] = useState(false);
 
     const handleLikeClick = async (e: React.MouseEvent) => {
       e.stopPropagation();
@@ -187,10 +339,17 @@ export default function ProfilePage() {
     const mediaUrl = post.media?.[0] ? getMediaUrl(post.media[0].mediaUrl) : null;
     const isVideo = post.media?.[0]?.mediaType === 'VIDEO';
 
+    const handleClick = () => {
+      setSelectedPost(post);
+    };
+
     return (
       <motion.div
         whileHover={{ scale: 1.02, zIndex: 2 }}
         style={{ aspectRatio: '1', borderRadius: 8, overflow: 'hidden', background: 'var(--bg3)', cursor: 'pointer', position: 'relative' }}
+        onMouseEnter={() => setShowActions(true)}
+        onMouseLeave={() => setShowActions(false)}
+        onClick={handleClick}
       >
         {mediaUrl ? (
           <>
@@ -207,6 +366,60 @@ export default function ProfilePage() {
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               />
             )}
+            
+            {showActions && tab === 'posts' && (
+              <div style={{
+                position: 'absolute',
+                top: 8,
+                right: 8,
+                display: 'flex',
+                gap: 8,
+                zIndex: 3
+              }}>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setEditingPost(post);
+                    setEditContent(post.content || '');
+                  }}
+                  style={{
+                    background: 'rgba(0,0,0,.6)',
+                    border: 'none',
+                    borderRadius: '50%',
+                    width: 32,
+                    height: 32,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    color: 'white'
+                  }}
+                >
+                  <Edit3 size={14} />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setDeleteConfirm(post.id);
+                  }}
+                  style={{
+                    background: 'rgba(0,0,0,.6)',
+                    border: 'none',
+                    borderRadius: '50%',
+                    width: 32,
+                    height: 32,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    color: '#ef4444'
+                  }}
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            )}
+
             <div
               style={{
                 position: 'absolute',
@@ -261,7 +474,59 @@ export default function ProfilePage() {
             </button>
           </>
         ) : (
-          <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', padding: 12 }}>
+          <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', padding: 12, position: 'relative' }}>
+            {showActions && tab === 'posts' && (
+              <div style={{
+                position: 'absolute',
+                top: 8,
+                right: 8,
+                display: 'flex',
+                gap: 8,
+                zIndex: 3
+              }}>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setEditingPost(post);
+                    setEditContent(post.content || '');
+                  }}
+                  style={{
+                    background: 'rgba(0,0,0,.6)',
+                    border: 'none',
+                    borderRadius: '50%',
+                    width: 32,
+                    height: 32,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    color: 'white'
+                  }}
+                >
+                  <Edit3 size={14} />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setDeleteConfirm(post.id);
+                  }}
+                  style={{
+                    background: 'rgba(0,0,0,.6)',
+                    border: 'none',
+                    borderRadius: '50%',
+                    width: 32,
+                    height: 32,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    color: '#ef4444'
+                  }}
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            )}
             <p style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.5, flex: 1, overflow: 'hidden' }}>
               {post.content?.slice(0, 80)}{post.content?.length > 80 ? '…' : ''}
             </p>
@@ -277,41 +542,130 @@ export default function ProfilePage() {
   return (
     <div style={{ height: '100%', overflowY: 'auto' }}>
       {/* Banner / Cover */}
-      <div style={{ position: 'relative', height: 180, background: coverBg, overflow: 'hidden' }}>
-        {!(currentUser as any)?.coverImage && (
+      <div style={{ position: 'relative', height: 180, background: coverBg, backgroundSize: 'cover', backgroundPosition: 'center', overflow: 'hidden' }}>
+        {(!coverImageUrl || coverError) && (
           <div style={{ position: 'absolute', inset: 0, background: 'url(https://images.unsplash.com/photo-1557804506-669a67965ba0?w=900&h=220&fit=crop) center/cover', opacity: 0.35 }} />
         )}
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 40%, var(--bg) 100%)' }} />
+        
+        {/* Cover Change Button */}
         <button
+          type="button"
           onClick={() => coverInputRef.current?.click()}
           disabled={coverUploading}
-          style={{ position: 'absolute', bottom: 12, right: 14, background: 'rgba(0,0,0,.55)', border: '1px solid rgba(255,255,255,.2)', borderRadius: 8, padding: '6px 12px', color: 'white', fontSize: 12, fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, backdropFilter: 'blur(4px)' }}
+          style={{ 
+            position: 'absolute', 
+            bottom: 12, 
+            right: 14, 
+            background: 'rgba(0,0,0,.55)', 
+            border: '1px solid rgba(255,255,255,.2)', 
+            borderRadius: 8, 
+            padding: '6px 12px', 
+            color: 'white', 
+            fontSize: 12, 
+            fontWeight: 500, 
+            cursor: coverUploading ? 'not-allowed' : 'pointer', 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: 5, 
+            backdropFilter: 'blur(4px)',
+            opacity: coverUploading ? 0.6 : 1,
+            transition: 'all 0.2s',
+            zIndex: 10
+          }}
+          onMouseEnter={(e) => {
+            if (!coverUploading) e.currentTarget.style.background = 'rgba(0,0,0,.8)';
+          }}
+          onMouseLeave={(e) => {
+            if (!coverUploading) e.currentTarget.style.background = 'rgba(0,0,0,.55)';
+          }}
         >
-          {coverUploading ? <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} /> : <Camera size={12} />}
+          {coverUploading ? (
+            <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} />
+          ) : (
+            <Camera size={12} />
+          )}
           {coverUploading ? 'Uploading…' : 'Change Cover'}
         </button>
-        <input ref={coverInputRef} type="file" accept="image/*" style={{ display: 'none' }}
-          onChange={e => { const f = e.target.files?.[0]; if (f) uploadImage(f, 'cover'); e.target.value = ''; }} />
+        
+        <input 
+          ref={coverInputRef} 
+          type="file" 
+          accept="image/*" 
+          style={{ display: 'none' }}
+          onChange={e => { 
+            const file = e.target.files?.[0]; 
+            if (file) uploadCoverImage(file);
+            e.target.value = ''; 
+          }} 
+        />
       </div>
 
       <div style={{ padding: '0 24px', position: 'relative', marginTop: -48 }}>
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 16 }}>
+          {/* Avatar Section */}
           <div style={{ position: 'relative' }}>
-            {currentUser?.avatar ? (
-              <img src={getMediaUrl(currentUser.avatar)} alt={displayName}
-                style={{ width: 84, height: 84, borderRadius: '50%', objectFit: 'cover', border: '3px solid var(--bg)' }} />
+            {avatarUrl && !avatarError ? (
+              <img
+                src={avatarUrl}
+                alt={displayName}
+                style={{ width: 84, height: 84, borderRadius: '50%', objectFit: 'cover', border: '3px solid var(--bg)' }}
+                onError={() => setAvatarError(true)}
+              />
             ) : (
               <div style={{ width: 84, height: 84, borderRadius: '50%', background: 'linear-gradient(135deg, var(--accent), var(--pink))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 800, color: 'white', border: '3px solid var(--bg)' }}>
                 {initials}
               </div>
             )}
-            <button onClick={() => avatarInputRef.current?.click()}
+            
+            {/* Avatar Change Button */}
+            <button 
+              type="button"
+              onClick={() => avatarInputRef.current?.click()}
               disabled={avatarUploading}
-              style={{ position: 'absolute', bottom: 0, right: -4, width: 26, height: 26, borderRadius: '50%', background: 'var(--accent)', border: '2px solid var(--bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
-              {avatarUploading ? <Loader2 size={11} style={{ animation: 'spin 1s linear infinite' }} /> : <Camera size={11} />}
+              style={{ 
+                position: 'absolute', 
+                bottom: 0, 
+                right: -4, 
+                width: 26, 
+                height: 26, 
+                borderRadius: '50%', 
+                background: 'var(--accent)', 
+                border: '2px solid var(--bg)', 
+                cursor: avatarUploading ? 'not-allowed' : 'pointer', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                color: 'white',
+                opacity: avatarUploading ? 0.6 : 1,
+                transition: 'all 0.2s',
+                zIndex: 10
+              }}
+              onMouseEnter={(e) => {
+                if (!avatarUploading) e.currentTarget.style.background = 'var(--accent3)';
+              }}
+              onMouseLeave={(e) => {
+                if (!avatarUploading) e.currentTarget.style.background = 'var(--accent)';
+              }}
+            >
+              {avatarUploading ? (
+                <Loader2 size={11} style={{ animation: 'spin 1s linear infinite' }} />
+              ) : (
+                <Camera size={11} />
+              )}
             </button>
-            <input ref={avatarInputRef} type="file" accept="image/*" style={{ display: 'none' }}
-              onChange={e => { const f = e.target.files?.[0]; if (f) uploadImage(f, 'avatar'); e.target.value = ''; }} />
+            
+            <input 
+              ref={avatarInputRef} 
+              type="file" 
+              accept="image/*" 
+              style={{ display: 'none' }}
+              onChange={e => { 
+                const file = e.target.files?.[0]; 
+                if (file) uploadAvatarImage(file);
+                e.target.value = ''; 
+              }} 
+            />
           </div>
 
           <motion.button whileTap={{ scale: 0.95 }} onClick={() => setEditOpen(true)}
@@ -356,7 +710,7 @@ export default function ProfilePage() {
           ))}
         </div>
 
-        {/* Posts Grid - 3 or 4 columns based on screen size */}
+        {/* Posts Grid */}
         {tab === 'posts' && (
           <>
             {loadingPosts ? (
@@ -414,6 +768,173 @@ export default function ProfilePage() {
         )}
       </div>
 
+      {/* Post Detail Modal */}
+      <AnimatePresence>
+        {selectedPost && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: 20, overflowY: 'auto' }}
+            onClick={() => setSelectedPost(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              style={{ maxWidth: 600, width: '100%', maxHeight: '90vh', overflowY: 'auto' }}
+              onClick={e => e.stopPropagation()}
+            >
+              <RealPostCard
+                post={selectedPost}
+                onLikeToggle={handleLikeToggle}
+                onCommentAdded={handleCommentAdded}
+                onPostDelete={handlePostDelete}
+                onShare={handleShare}
+                showComments={true}
+              />
+              <div style={{ display: 'flex', justifyContent: 'center', marginTop: 16 }}>
+                <button
+                  onClick={() => setSelectedPost(null)}
+                  style={{
+                    padding: '10px 24px',
+                    background: 'rgba(255,255,255,.1)',
+                    border: '1px solid rgba(255,255,255,.2)',
+                    borderRadius: 30,
+                    color: 'white',
+                    fontSize: 14,
+                    cursor: 'pointer',
+                    backdropFilter: 'blur(10px)'
+                  }}
+                >
+                  Close
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {deleteConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1001, padding: 16 }}
+            onClick={() => setDeleteConfirm(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 20, padding: 24, width: 320, textAlign: 'center' }}
+              onClick={e => e.stopPropagation()}
+            >
+              <div style={{ fontSize: 48, marginBottom: 16 }}>🗑️</div>
+              <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8, color: 'var(--text)' }}>Delete Post?</h3>
+              <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 20 }}>This action cannot be undone.</p>
+              <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+                <button
+                  onClick={() => setDeleteConfirm(null)}
+                  style={{ padding: '8px 20px', background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 10, color: 'var(--text2)', cursor: 'pointer' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handleDeletePost(deleteConfirm)}
+                  style={{ padding: '8px 20px', background: '#ef4444', border: 'none', borderRadius: 10, color: 'white', cursor: 'pointer' }}
+                >
+                  Delete
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Edit Post Modal */}
+      <AnimatePresence>
+        {editingPost && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1001, padding: 16 }}
+            onClick={() => setEditingPost(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 20, padding: 24, width: 400, maxWidth: '90vw' }}
+              onClick={e => e.stopPropagation()}
+            >
+              <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16, color: 'var(--text)' }}>Edit Post</h3>
+              
+              {editingPost.media?.[0] && (
+                <div style={{ marginBottom: 16, borderRadius: 12, overflow: 'hidden', background: 'var(--bg3)' }}>
+                  {editingPost.media[0].mediaType === 'VIDEO' ? (
+                    <video
+                      src={getMediaUrl(editingPost.media[0].mediaUrl)}
+                      style={{ width: '100%', maxHeight: 150, objectFit: 'cover' }}
+                      controls
+                    />
+                  ) : (
+                    <img
+                      src={getMediaUrl(editingPost.media[0].mediaUrl)}
+                      alt="Current media"
+                      style={{ width: '100%', maxHeight: 150, objectFit: 'cover' }}
+                    />
+                  )}
+                  <div style={{ padding: 8, fontSize: 12, color: 'var(--text3)', textAlign: 'center', background: 'rgba(0,0,0,.5)' }}>
+                    Current media will be preserved
+                  </div>
+                </div>
+              )}
+              
+              <textarea
+                value={editContent}
+                onChange={e => setEditContent(e.target.value)}
+                rows={4}
+                placeholder="Edit your post content..."
+                style={{
+                  width: '100%',
+                  background: 'var(--bg3)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 12,
+                  padding: '12px',
+                  color: 'var(--text)',
+                  fontSize: 14,
+                  outline: 'none',
+                  resize: 'vertical',
+                  marginBottom: 20
+                }}
+                autoFocus
+              />
+              <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+                <button
+                  onClick={() => setEditingPost(null)}
+                  style={{ padding: '8px 20px', background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 10, color: 'var(--text2)', cursor: 'pointer' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleEditPost}
+                  style={{ padding: '8px 20px', background: 'linear-gradient(135deg, var(--accent), var(--accent3))', border: 'none', borderRadius: 10, color: 'white', cursor: 'pointer' }}
+                >
+                  Save Changes
+                </button>
+              </div>
+              <p style={{ fontSize: 11, color: 'var(--text3)', marginTop: 12, textAlign: 'center' }}>
+                Note: Media (images/videos) will be preserved. Only text content will be updated.
+              </p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Edit Profile Modal */}
       <AnimatePresence>
         {editOpen && (
@@ -464,7 +985,7 @@ export default function ProfilePage() {
           </motion.div>
         )}
       </AnimatePresence>
-      
+
       <style>{`
         @keyframes spin { from { transform:rotate(0deg) } to { transform:rotate(360deg) } }
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }

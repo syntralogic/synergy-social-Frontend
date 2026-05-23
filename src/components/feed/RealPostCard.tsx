@@ -22,6 +22,7 @@ interface Props {
   onCommentAdded?: (postId: string, newCommentCount: number) => void;
   onPostDelete?: (postId: string) => void;
   onShare?: (postId: string) => void;
+  showComments?: boolean;
 }
 
 function timeAgo(dateStr: string) {
@@ -34,9 +35,39 @@ function timeAgo(dateStr: string) {
   return `${Math.floor(h / 24)}d ago`;
 }
 
-export default function RealPostCard({ post, onLikeToggle, onCommentAdded, onPostDelete, onShare }: Props) {
+// Helper function to get full avatar URL
+const getAvatarUrl = (avatar: string | undefined) => {
+  if (!avatar) return null;
+  if (avatar.startsWith('/uploads')) {
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+    return `${apiBase}${avatar}`;
+  }
+  return avatar;
+};
+
+// Helper function to get full media URL
+const getMediaUrl = (mediaUrl: string | undefined) => {
+  if (!mediaUrl) return null;
+  if (mediaUrl.startsWith('/uploads')) {
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+    return `${apiBase}${mediaUrl}`;
+  }
+  if (mediaUrl.startsWith('http')) {
+    return mediaUrl;
+  }
+  return mediaUrl;
+};
+
+export default function RealPostCard({ 
+  post, 
+  onLikeToggle, 
+  onCommentAdded, 
+  onPostDelete, 
+  onShare,
+  showComments = false
+}: Props) {
   const [likeAnim, setLikeAnim] = useState(false);
-  const [showComment, setShowComment] = useState(false);
+  const [showCommentInput, setShowCommentInput] = useState(showComments);
   const [comment, setComment] = useState('');
   const [commenting, setCommenting] = useState(false);
   const [localCommentsCount, setLocalCommentsCount] = useState(post._count?.comments || 0);
@@ -48,39 +79,41 @@ export default function RealPostCard({ post, onLikeToggle, onCommentAdded, onPos
   const [mediaLoading, setMediaLoading] = useState(true);
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [commentsList, setCommentsList] = useState<any[]>([]);
+  const [loadingComments, setLoadingComments] = useState(false);
+  const [showCommentsList, setShowCommentsList] = useState(false);
 
-  // Safety check for post.author
   const authorFullName = post.author?.fullName || 'User';
   const authorUsername = post.author?.username || 'user';
-  const authorAvatar = post.author?.avatar || null;
+  const authorAvatar = getAvatarUrl(post.author?.avatar);
   
   const initials = authorFullName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
   
-  // Get media URL with proper path handling
-  const getMediaUrl = () => {
-    if (!post.media || post.media.length === 0) return null;
-    const mediaUrl = post.media[0].mediaUrl;
-    
-    if (!mediaUrl) return null;
-    
-    if (mediaUrl.startsWith('/uploads')) {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-      return `${apiBase}${mediaUrl}`;
-    }
-    
-    if (mediaUrl.startsWith('http')) {
-      return mediaUrl;
-    }
-    
-    const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-    return `${apiBase}${mediaUrl.startsWith('/') ? mediaUrl : `/${mediaUrl}`}`;
-  };
-  
-  const mediaUrl = getMediaUrl();
+  const mediaUrl = post.media?.[0] ? getMediaUrl(post.media[0].mediaUrl) : null;
   const isVideo = post.media?.[0]?.mediaType === 'VIDEO' || post.postType === 'VIDEO';
   const postUrl = typeof window !== 'undefined' ? `${window.location.origin}/post/${post.id}` : '';
 
-  // Reset loading state when media URL changes
+  // Load comments when user clicks to show them
+  const loadComments = async () => {
+    if (commentsList.length > 0) {
+      setShowCommentsList(!showCommentsList);
+      return;
+    }
+    
+    setLoadingComments(true);
+    try {
+      const response = await postsAPI.getComments(post.id);
+      if (response.success && response.data) {
+        setCommentsList(response.data);
+        setShowCommentsList(true);
+      }
+    } catch (error) {
+      console.error('Error loading comments:', error);
+    } finally {
+      setLoadingComments(false);
+    }
+  };
+
   React.useEffect(() => {
     setMediaLoading(true);
     setMediaError(false);
@@ -118,17 +151,22 @@ export default function RealPostCard({ post, onLikeToggle, onCommentAdded, onPos
     setCommenting(true);
     try {
       const response = await postsAPI.comment(post.id, comment.trim());
-      console.log('Comment posted:', response);
       
       const newCount = localCommentsCount + 1;
       setLocalCommentsCount(newCount);
+      
+      if (response.data) {
+        setCommentsList(prev => [response.data, ...prev]);
+        if (!showCommentsList) {
+          setShowCommentsList(true);
+        }
+      }
       
       if (onCommentAdded) {
         onCommentAdded(post.id, newCount);
       }
       
       setComment('');
-      setShowComment(false);
     } catch (error: any) {
       console.error('Failed to post comment:', error);
       alert(error?.message || 'Failed to post comment. Please try again.');
@@ -158,7 +196,6 @@ export default function RealPostCard({ post, onLikeToggle, onCommentAdded, onPos
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
         
-        // Increment share count locally
         const newCount = sharesCount + 1;
         setSharesCount(newCount);
         if (onShare) onShare(post.id);
@@ -172,7 +209,6 @@ export default function RealPostCard({ post, onLikeToggle, onCommentAdded, onPos
     if (shareUrl) {
       window.open(shareUrl, '_blank', 'width=600,height=400');
       
-      // Increment share count locally
       const newCount = sharesCount + 1;
       setSharesCount(newCount);
       if (onShare) onShare(post.id);
@@ -194,32 +230,12 @@ export default function RealPostCard({ post, onLikeToggle, onCommentAdded, onPos
     }
   }
 
-  const handleVideoLoad = () => {
-    setMediaLoading(false);
-    console.log('Video loaded successfully:', mediaUrl);
-  };
+  const handleVideoLoad = () => setMediaLoading(false);
+  const handleVideoError = () => { setMediaError(true); setMediaLoading(false); };
+  const handleImageLoad = () => setMediaLoading(false);
+  const handleImageError = () => { setMediaError(true); setMediaLoading(false); };
 
-  const handleVideoError = (e: any) => {
-    console.error('Video failed to load:', mediaUrl, e);
-    setMediaError(true);
-    setMediaLoading(false);
-  };
-
-  const handleImageLoad = () => {
-    setMediaLoading(false);
-    console.log('Image loaded successfully:', mediaUrl);
-  };
-
-  const handleImageError = () => {
-    console.error('Image failed to load:', mediaUrl);
-    setMediaError(true);
-    setMediaLoading(false);
-  };
-
-  // Safety check
-  if (!post || !post.author) {
-    return null;
-  }
+  if (!post || !post.author) return null;
 
   return (
     <motion.div
@@ -242,6 +258,9 @@ export default function RealPostCard({ post, onLikeToggle, onCommentAdded, onPos
             src={authorAvatar}
             alt={authorFullName}
             style={{ width: 38, height: 38, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
+            onError={(e) => {
+              (e.target as HTMLImageElement).style.display = 'none';
+            }}
           />
         ) : (
           <div
@@ -404,7 +423,10 @@ export default function RealPostCard({ post, onLikeToggle, onCommentAdded, onPos
         <span style={{ fontSize: 12, color: 'var(--text3)' }}>
           {fmtNum(likesCount)} likes
         </span>
-        <span style={{ fontSize: 12, color: 'var(--text3)' }}>
+        <span 
+          style={{ fontSize: 12, color: 'var(--text3)', cursor: 'pointer' }}
+          onClick={loadComments}
+        >
           {fmtNum(localCommentsCount)} comments
         </span>
         <span style={{ fontSize: 12, color: 'var(--text3)' }}>
@@ -444,7 +466,12 @@ export default function RealPostCard({ post, onLikeToggle, onCommentAdded, onPos
           icon={<MessageCircle size={20} color="var(--text3)" />}
           label="Comment"
           count={localCommentsCount}
-          onClick={() => setShowComment(v => !v)}
+          onClick={() => {
+            setShowCommentInput(!showCommentInput);
+            if (!showCommentInput && commentsList.length === 0) {
+              loadComments();
+            }
+          }}
         />
         <div style={{ position: 'relative' }}>
           <ActionBtn
@@ -497,7 +524,6 @@ export default function RealPostCard({ post, onLikeToggle, onCommentAdded, onPos
                   <Twitter size={16} color="#1DA1F2" />
                   <span>Share to Twitter</span>
                 </button>
-                
                 <button
                   onClick={() => handleShareToPlatform('facebook')}
                   style={{
@@ -520,7 +546,6 @@ export default function RealPostCard({ post, onLikeToggle, onCommentAdded, onPos
                   <Facebook size={16} color="#4267B2" />
                   <span>Share to Facebook</span>
                 </button>
-                
                 <button
                   onClick={() => handleShareToPlatform('copy')}
                   style={{
@@ -554,75 +579,127 @@ export default function RealPostCard({ post, onLikeToggle, onCommentAdded, onPos
         />
       </div>
 
-      {/* Comment input */}
-      <AnimatePresence>
-        {showComment && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
+      {/* Comment Input */}
+      {showCommentInput && (
+        <div style={{ borderTop: '1px solid var(--border)', padding: '10px 14px', display: 'flex', gap: 8 }}>
+          <input
+            value={comment}
+            onChange={e => setComment(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter' && !commenting && comment.trim()) {
+                handleComment();
+              }
+            }}
+            placeholder="Write a comment…"
+            disabled={commenting}
             style={{
-              overflow: 'hidden',
-              borderTop: '1px solid var(--border)',
+              flex: 1,
+              background: 'var(--bg3)',
+              border: '1px solid var(--border)',
+              borderRadius: 20,
               padding: '10px 14px',
+              color: 'var(--text)',
+              fontSize: 14,
+              outline: 'none',
+              fontFamily: 'DM Sans, sans-serif'
+            }}
+            onFocus={e => (e.target.style.borderColor = 'var(--accent)')}
+            onBlur={e => (e.target.style.borderColor = 'var(--border)')}
+            autoFocus
+          />
+          <button
+            onClick={handleComment}
+            disabled={commenting || !comment.trim()}
+            style={{
+              padding: '8px 18px',
+              background: 'linear-gradient(135deg, var(--accent), var(--accent3))',
+              border: 'none',
+              borderRadius: 20,
+              color: 'white',
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: 'pointer',
               display: 'flex',
-              gap: 8
+              alignItems: 'center',
+              gap: 6,
+              opacity: commenting || !comment.trim() ? 0.6 : 1,
+              transition: 'opacity 0.2s'
             }}
           >
-            <input
-              value={comment}
-              onChange={e => setComment(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter' && !commenting && comment.trim()) {
-                  handleComment();
-                }
-              }}
-              placeholder="Write a comment…"
-              disabled={commenting}
-              style={{
-                flex: 1,
-                background: 'var(--bg3)',
-                border: '1px solid var(--border)',
-                borderRadius: 20,
-                padding: '10px 14px',
-                color: 'var(--text)',
-                fontSize: 14,
-                outline: 'none',
-                fontFamily: 'DM Sans, sans-serif'
-              }}
-              onFocus={e => (e.target.style.borderColor = 'var(--accent)')}
-              onBlur={e => (e.target.style.borderColor = 'var(--border)')}
-              autoFocus
-            />
-            <button
-              onClick={handleComment}
-              disabled={commenting || !comment.trim()}
-              style={{
-                padding: '8px 18px',
-                background: 'linear-gradient(135deg, var(--accent), var(--accent3))',
-                border: 'none',
-                borderRadius: 20,
-                color: 'white',
-                fontSize: 13,
-                fontWeight: 600,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                opacity: commenting || !comment.trim() ? 0.6 : 1,
-                transition: 'opacity 0.2s'
-              }}
-            >
-              {commenting ? (
-                <Loader2 size={14} style={{ animation: 'spin 0.7s linear infinite' }} />
-              ) : (
-                <Send size={14} />
-              )}
-              <span>Post</span>
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            {commenting ? (
+              <Loader2 size={14} style={{ animation: 'spin 0.7s linear infinite' }} />
+            ) : (
+              <Send size={14} />
+            )}
+            <span>Post</span>
+          </button>
+        </div>
+      )}
+
+      {/* Comments List */}
+      {showCommentsList && (
+        <div style={{ borderTop: '1px solid var(--border)', padding: '12px 14px', background: 'var(--bg3)' }}>
+          <h4 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: 'var(--text)' }}>
+            Comments ({localCommentsCount})
+          </h4>
+          {loadingComments ? (
+            <div style={{ display: 'flex', justifyContent: 'center', padding: 20 }}>
+              <Loader2 size={20} style={{ animation: 'spin 0.7s linear infinite', color: 'var(--accent)' }} />
+            </div>
+          ) : commentsList.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: 20, color: 'var(--text3)', fontSize: 13 }}>
+              No comments yet. Be the first to comment!
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {commentsList.map((comment: any) => (
+                <div key={comment.id} style={{ display: 'flex', gap: 8 }}>
+                  {comment.author?.avatar ? (
+                    <img
+                      src={getAvatarUrl(comment.author.avatar)}
+                      alt=""
+                      style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover' }}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: '50%',
+                        background: 'linear-gradient(135deg, var(--accent), var(--pink))',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: 10,
+                        fontWeight: 700,
+                        color: 'white'
+                      }}
+                    >
+                      {comment.author?.fullName?.charAt(0) || 'U'}
+                    </div>
+                  )}
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)' }}>
+                        {comment.author?.fullName || 'User'}
+                      </span>
+                      <span style={{ fontSize: 10, color: 'var(--text3)' }}>
+                        @{comment.author?.username || 'user'}
+                      </span>
+                    </div>
+                    <p style={{ fontSize: 13, color: 'var(--text2)', marginTop: 4, lineHeight: 1.5 }}>
+                      {comment.content}
+                    </p>
+                    <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 4 }}>
+                      {timeAgo(comment.createdAt)}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </motion.div>
   );
 }
@@ -672,7 +749,6 @@ function ActionBtn({
   );
 }
 
-// Add CSS animation for spinner
 if (typeof document !== 'undefined') {
   const style = document.createElement('style');
   style.textContent = `
