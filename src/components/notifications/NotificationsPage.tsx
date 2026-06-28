@@ -1,8 +1,10 @@
 'use client';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BellOff, CheckCheck, Loader2, RefreshCw } from 'lucide-react';
-import { notificationsAPI } from '@/lib/api';
+import { notificationsAPI, getToken } from '@/lib/api';
+
+const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000';
 
 interface BackendNotif {
   id: string;
@@ -37,6 +39,7 @@ export default function NotificationsPage() {
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState<string | null>(null);
   const [markingAll, setMarkingAll] = useState(false);
+  const socketRef = useRef<import('socket.io-client').Socket | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true); setError(null);
@@ -48,6 +51,29 @@ export default function NotificationsPage() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  // Real-time: listen for new notifications via socket
+  useEffect(() => {
+    const token = getToken();
+    if (!token) return;
+
+    let socket: import('socket.io-client').Socket;
+    (async () => {
+      const { io } = await import('socket.io-client');
+      socket = io(SOCKET_URL, { auth: { token }, transports: ['websocket', 'polling'] });
+      socketRef.current = socket;
+
+      socket.on('notification:new', (notif: BackendNotif) => {
+        setNotifs(prev => {
+          // avoid duplicates
+          if (prev.some(n => n.id === notif.id)) return prev;
+          return [{ ...notif, isRead: false }, ...prev];
+        });
+      });
+    })();
+
+    return () => { socket?.disconnect(); };
+  }, []);
 
   const handleMarkRead = async (id: string) => {
     setNotifs(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));

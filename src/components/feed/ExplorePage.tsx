@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Search, TrendingUp, UserCheck, UserPlus, Loader2 } from 'lucide-react';
+import { Search, TrendingUp, UserCheck, UserPlus, Loader2, MessageCircle } from 'lucide-react';
 import { INIT_POSTS, TREND_TAGS, fmtNum } from '@/lib/data';
 import Avatar from '@/components/ui/Avatar';
 import { useStore } from '@/store/useStore';
@@ -31,6 +31,8 @@ interface ApiUser {
 export default function ExplorePage() {
   const { following, toggleFollow } = useStore(s => ({ following: s.following, toggleFollow: s.toggleFollow }));
   const currentUser = useStore(s => s.currentUser);
+  const setPage = useStore(s => s.setPage);
+  const setMessageUserId = useStore(s => s.setMessageUserId);
 
   const [query, setQuery]           = useState('');
   const [searchResults, setSearchResults] = useState<ApiUser[]>([]);
@@ -67,6 +69,11 @@ export default function ExplorePage() {
     const t = setTimeout(() => doSearch(query), 400);
     return () => clearTimeout(t);
   }, [query, doSearch]);
+
+  const handleMessage = (u: ApiUser) => {
+    setMessageUserId(u.id);
+    setPage('messages');
+  };
 
   const handleFollow = async (u: ApiUser) => {
     toggleFollow(u.id);
@@ -163,15 +170,25 @@ export default function ExplorePage() {
                 <div style={{ fontSize:12, color:'var(--text3)' }}>@{u.username}</div>
               </div>
               {u.id !== currentUser?.id && (
-                <button onClick={() => handleFollow(u)}
-                  style={{ padding:'5px 14px', borderRadius:20, border:'1.5px solid', fontSize:12, fontWeight:600, cursor:'pointer', fontFamily:'DM Sans',
-                    borderColor: following[u.id] ? 'var(--border2)' : 'var(--accent)',
-                    background:  following[u.id] ? 'transparent' : 'var(--accent)',
-                    color:       following[u.id] ? 'var(--text2)' : 'white',
-                    display:'flex', alignItems:'center', gap:4
-                  }}>
-                  {following[u.id] ? <><UserCheck size={12}/> Following</> : <><UserPlus size={12}/> Follow</>}
-                </button>
+                <div style={{ display:'flex', gap:6, alignItems:'center' }}>
+                  <button onClick={() => handleMessage(u)}
+                    style={{ padding:'5px 12px', borderRadius:20, border:'1.5px solid var(--border)', fontSize:12, fontWeight:600, cursor:'pointer', fontFamily:'DM Sans',
+                      background: 'transparent',
+                      color: 'var(--text2)',
+                      display:'flex', alignItems:'center', gap:4
+                    }}>
+                    <MessageCircle size={12}/> Message
+                  </button>
+                  <button onClick={() => handleFollow(u)}
+                    style={{ padding:'5px 14px', borderRadius:20, border:'1.5px solid', fontSize:12, fontWeight:600, cursor:'pointer', fontFamily:'DM Sans',
+                      borderColor: following[u.id] ? 'var(--border2)' : 'var(--accent)',
+                      background:  following[u.id] ? 'transparent' : 'var(--accent)',
+                      color:       following[u.id] ? 'var(--text2)' : 'white',
+                      display:'flex', alignItems:'center', gap:4
+                    }}>
+                    {following[u.id] ? <><UserCheck size={12}/> Following</> : <><UserPlus size={12}/> Follow</>}
+                  </button>
+                </div>
               )}
             </div>
           ))}

@@ -1,9 +1,10 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, Send, Loader2, Check, Twitter, Facebook, Link2 } from 'lucide-react';
-import { postsAPI } from '@/lib/api';
+import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, Send, Loader2, Check, Twitter, Facebook, Link2, UserPlus, UserCheck } from 'lucide-react';
+import { postsAPI, usersAPI } from '@/lib/api';
 import { fmtNum } from '@/lib/data';
+import { useStore } from '@/store/useStore';
 
 interface ApiPost {
   id: string;
@@ -66,6 +67,12 @@ export default function RealPostCard({
   onShare,
   showComments = false
 }: Props) {
+  const { following, toggleFollow, currentUser } = useStore(s => ({ 
+    following: s.following, 
+    toggleFollow: s.toggleFollow,
+    currentUser: s.currentUser
+  }));
+  
   const [likeAnim, setLikeAnim] = useState(false);
   const [showCommentInput, setShowCommentInput] = useState(showComments);
   const [comment, setComment] = useState('');
@@ -82,6 +89,22 @@ export default function RealPostCard({
   const [commentsList, setCommentsList] = useState<any[]>([]);
   const [loadingComments, setLoadingComments] = useState(false);
   const [showCommentsList, setShowCommentsList] = useState(false);
+  
+  // Follow state - get from store directly
+  const authorId = post.author?.id;
+  const isOwnPost = currentUser?.id === authorId;
+  
+  // Get follow status directly from store
+  const isFollowing = authorId ? following[authorId] || false : false;
+  const [followLoading, setFollowLoading] = useState(false);
+  const [localFollowState, setLocalFollowState] = useState(isFollowing);
+
+  // Sync local state with store when it changes
+  useEffect(() => {
+    if (authorId) {
+      setLocalFollowState(following[authorId] || false);
+    }
+  }, [following, authorId]);
 
   const authorFullName = post.author?.fullName || 'User';
   const authorUsername = post.author?.username || 'user';
@@ -114,7 +137,7 @@ export default function RealPostCard({
     }
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     setMediaLoading(true);
     setMediaError(false);
   }, [mediaUrl]);
@@ -172,6 +195,37 @@ export default function RealPostCard({
       alert(error?.message || 'Failed to post comment. Please try again.');
     } finally {
       setCommenting(false);
+    }
+  }
+
+  async function handleFollow() {
+    if (!authorId || isOwnPost || followLoading) return;
+    
+    setFollowLoading(true);
+    const currentFollowState = localFollowState;
+    const newFollowState = !currentFollowState;
+    
+    // Update local state immediately (optimistic)
+    setLocalFollowState(newFollowState);
+    
+    // Update store optimistically
+    toggleFollow(authorId);
+    
+    try {
+      if (newFollowState) {
+        await usersAPI.follow(authorId);
+        console.log('✅ Followed user:', authorId);
+      } else {
+        await usersAPI.unfollow(authorId);
+        console.log('✅ Unfollowed user:', authorId);
+      }
+    } catch (error: any) {
+      console.error('Follow action failed:', error);
+      // Revert on error
+      setLocalFollowState(currentFollowState);
+      toggleFollow(authorId); // Revert store
+    } finally {
+      setFollowLoading(false);
     }
   }
 
@@ -251,8 +305,9 @@ export default function RealPostCard({
         overflow: 'hidden'
       }}
     >
-      {/* Header */}
+      {/* Header with Follow Button */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px' }}>
+        {/* Avatar */}
         {authorAvatar ? (
           <img
             src={authorAvatar}
@@ -281,6 +336,7 @@ export default function RealPostCard({
             {initials}
           </div>
         )}
+        
         <div style={{ flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
             <span
@@ -298,6 +354,43 @@ export default function RealPostCard({
             @{authorUsername} · {timeAgo(post.createdAt)}
           </div>
         </div>
+
+        {/* Follow Button - Only show if not own post */}
+        {!isOwnPost && authorId && (
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={handleFollow}
+            disabled={followLoading}
+            style={{
+              padding: '4px 14px',
+              borderRadius: 20,
+              border: '1.5px solid',
+              fontSize: 11,
+              fontWeight: 600,
+              cursor: followLoading ? 'default' : 'pointer',
+              fontFamily: 'DM Sans, sans-serif',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              borderColor: localFollowState ? 'var(--border2)' : 'var(--accent)',
+              background: localFollowState ? 'transparent' : 'var(--accent)',
+              color: localFollowState ? 'var(--text2)' : 'white',
+              opacity: followLoading ? 0.6 : 1,
+              transition: 'all 0.2s'
+            }}
+          >
+            {followLoading ? (
+              <Loader2 size={12} style={{ animation: 'spin 0.7s linear infinite' }} />
+            ) : localFollowState ? (
+              <><UserCheck size={12} /> Following</>
+            ) : (
+              <><UserPlus size={12} /> Follow</>
+            )}
+          </motion.button>
+        )}
+
+        {/* More menu */}
         <div style={{ position: 'relative' }}>
           <button
             onClick={() => setShowMenu(!showMenu)}

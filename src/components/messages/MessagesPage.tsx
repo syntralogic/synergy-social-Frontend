@@ -35,6 +35,8 @@ function timeAgo(d: string) {
 
 export default function MessagesPage() {
   const { currentUser } = useStore(s => ({ currentUser: s.currentUser }));
+  const messageUserId = useStore(s => s.messageUserId);
+  const setMessageUserId = useStore(s => s.setMessageUserId);
   const [convs, setConvs]           = useState<Conversation[]>([]);
   const [activeConv, setActiveConv] = useState<Conversation | null>(null);
   const [messages, setMessages]     = useState<Message[]>([]);
@@ -48,6 +50,42 @@ export default function MessagesPage() {
   const messagesEnd = useRef<HTMLDivElement>(null);
   const socketRef   = useRef<import('socket.io-client').Socket | null>(null);
   const typingTimer = useRef<NodeJS.Timeout | null>(null);
+
+  // Auto-open conversation when navigated from Explore with a userId
+  useEffect(() => {
+    if (!messageUserId || loading) return;
+    
+    // Check if conversation already exists
+    const existing = convs.find(c => 
+      c.participants.some(p => p.user.id === messageUserId)
+    );
+    
+    if (existing) {
+      setActiveConv(existing);
+      setMobileView(true);
+      setMessageUserId(null);
+    } else {
+      // Create new conversation
+      (async () => {
+        try {
+          const res = await messagesAPI.createConversation(messageUserId);
+          const newConv = res.data;
+          if (newConv) {
+            setConvs(prev => {
+              const already = prev.find(c => c.id === newConv.id);
+              return already ? prev : [newConv, ...prev];
+            });
+            setActiveConv(newConv);
+            setMobileView(true);
+          }
+        } catch (err) {
+          console.error('Could not open conversation:', err);
+        } finally {
+          setMessageUserId(null);
+        }
+      })();
+    }
+  }, [messageUserId, loading, convs]);
 
   // Load conversations
   useEffect(() => {
@@ -74,14 +112,18 @@ export default function MessagesPage() {
       socket.on('user:online',  ({ userId }: { userId: string }) => setOnlineUsers(prev => new Set(prev).add(userId)));
       socket.on('user:offline', ({ userId }: { userId: string }) => setOnlineUsers(prev => { const s = new Set(prev); s.delete(userId); return s; }));
 
-      socket.on('message:received', (msg: Message) => {
+      socket.on('message:received', (msg: Message & { conversationId?: string }) => {
         setMessages(prev => {
-          if (prev.some(m => m.id === msg.id)) return prev;
-          return [...prev, msg];
+          // Replace the optimistic temp message (if any) or skip true duplicates
+          const hasDuplicate = prev.some(m => m.id === msg.id);
+          if (hasDuplicate) return prev;
+          // Remove any temp message for this conversation and append real one
+          const withoutTemp = prev.filter(m => !m.id.startsWith('temp-'));
+          return [...withoutTemp, msg];
         });
         // update conversation last message
         setConvs(prev => prev.map(c =>
-          c.id === msg['conversationId']
+          c.id === msg.conversationId
             ? { ...c, lastMessage: msg.content, lastMessageAt: msg.createdAt }
             : c
         ));
@@ -150,9 +192,10 @@ export default function MessagesPage() {
         content,
         messageType: 'TEXT',
       });
-    } catch {
-      // fallback to REST
-      try { await messagesAPI.send(activeConv.id, content); } catch {}
+    } catch (err) {
+      console.error('Socket send failed:', err);
+      // Remove the optimistic message on failure
+      setMessages(prev => prev.filter(m => m.id !== tempMsg.id));
     } finally {
       setSending(false);
     }

@@ -46,6 +46,10 @@ interface AppState {
   // Following map (userId -> bool) for Explore page
   following: Record<string, boolean>;
   toggleFollow: (userId: string | number) => void;
+
+  // Direct message: open messages page for a specific user
+  messageUserId: string | null;
+  setMessageUserId: (id: string | null) => void;
 }
 
 export const useStore = create<AppState>((set) => ({
@@ -93,4 +97,8 @@ export const useStore = create<AppState>((set) => ({
       [String(userId)]: !s.following[String(userId)],
     },
   })),
+
+  // ── Direct Message ─────────────────────────────────────────────────────────
+  messageUserId: null,
+  setMessageUserId: (id) => set({ messageUserId: id }),
 }));
