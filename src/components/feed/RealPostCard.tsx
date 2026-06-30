@@ -390,7 +390,8 @@ export default function RealPostCard({
           </motion.button>
         )}
 
-        {/* More menu */}
+        {/* More menu — only on your own posts (Delete Post is the only action here) */}
+        {isOwnPost && (
         <div style={{ position: 'relative' }}>
           <button
             onClick={() => setShowMenu(!showMenu)}
@@ -437,6 +438,7 @@ export default function RealPostCard({
             </div>
           )}
         </div>
+        )}
       </div>
 
       {/* Media - Image or Video */}
