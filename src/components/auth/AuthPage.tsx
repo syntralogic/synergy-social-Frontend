@@ -3,13 +3,14 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, Lock, User, Eye, EyeOff, ArrowLeft, Sparkles, AtSign } from 'lucide-react';
 import { useStore } from '@/store/useStore';
-import { authAPI } from '@/lib/api';
+import { authAPI, usersAPI } from '@/lib/api';
 
 type AuthMode = 'signup' | 'login' | 'forgot';
 
 export default function AuthPage() {
   const loginStore = useStore(s => s.login);
   const setUser    = useStore(s => s.setUser);
+  const setFollowing = useStore(s => s.setFollowing);
 
   const [mode, setMode]         = useState<AuthMode>('signup');
   const [showPass, setShowPass] = useState(false);
@@ -58,6 +59,13 @@ export default function AuthPage() {
       }
       if (setUser) setUser(result.user);
       loginStore();
+      try {
+        const followingRes: any = await usersAPI.getFollowing(result.user.id);
+        const ids = (followingRes.data || []).map((u: any) => u.id);
+        setFollowing(ids);
+      } catch {
+        // Non-critical
+      }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Something went wrong';
       setError(msg);

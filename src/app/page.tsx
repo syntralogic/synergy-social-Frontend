@@ -1,12 +1,12 @@
 'use client';
 import { useEffect } from 'react';
 import { useStore } from '@/store/useStore';
-import { authAPI, getToken } from '@/lib/api';
+import { authAPI, usersAPI, getToken } from '@/lib/api';
 import AuthPage from '@/components/auth/AuthPage';
 import AppShell from '@/components/layout/AppShell';
 
 export default function Home() {
-  const { isAuthenticated, authChecked, login, setUser, setAuthChecked, logout } =
+  const { isAuthenticated, authChecked, login, setUser, setAuthChecked, logout, setFollowing } =
     useStore(s => ({
       isAuthenticated: s.isAuthenticated,
       authChecked:     s.authChecked,
@@ -14,6 +14,7 @@ export default function Home() {
       setUser:         s.setUser,
       setAuthChecked:  s.setAuthChecked,
       logout:          s.logout,
+      setFollowing:    s.setFollowing,
     }));
 
   // Restore session on page load if a token exists in localStorage
@@ -25,16 +26,26 @@ export default function Home() {
       return;
     }
     authAPI.getMe()
-      .then((res: any) => {
-        setUser(res.data.user);
+      .then(async (res: any) => {
+        const user = res.data.user;
+        setUser(user);
         login();
+        // Hydrate which users we already follow, so Follow/Following buttons
+        // reflect real state instead of resetting on every reload.
+        try {
+          const followingRes: any = await usersAPI.getFollowing(user.id);
+          const ids = (followingRes.data || []).map((u: any) => u.id);
+          setFollowing(ids);
+        } catch {
+          // Non-critical — buttons will just self-correct as the user interacts
+        }
       })
       .catch(() => {
         // Token invalid / expired and refresh failed — clear and show login
         logout();
       })
       .finally(() => setAuthChecked(true));
-  }, [authChecked, login, logout, setAuthChecked, setUser]);
+  }, [authChecked, login, logout, setAuthChecked, setUser, setFollowing]);
 
   // Show nothing while checking auth to avoid flash of wrong screen
   if (!authChecked) {

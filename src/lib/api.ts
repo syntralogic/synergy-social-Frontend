@@ -169,7 +169,8 @@ export const usersAPI = {
   updateProfile: (data: { fullName?: string; bio?: string; username?: string; avatar?: string; coverImage?: string }) =>
     apiFetch('/auth/profile', { method: 'PUT', body: JSON.stringify(data) }),
   follow:        (userId: string)   => apiFetch(`/users/${userId}/follow`,   { method: 'POST'   }),
-  unfollow:      (userId: string)   => apiFetch(`/users/${userId}/unfollow`, { method: 'DELETE' }),
+  unfollow:      (userId: string)   => apiFetch(`/users/${userId}/follow`,   { method: 'DELETE' }),
+  getFollowing:  (userId: string)   => apiFetch(`/users/${userId}/following`),
   search:        (q: string)        => apiFetch(`/users/search?q=${encodeURIComponent(q)}`),
 };
 
