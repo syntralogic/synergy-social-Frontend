@@ -1,9 +1,8 @@
 'use client';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, TrendingUp, UserCheck, UserPlus, Loader2, MessageCircle, X, Filter, Users, Hash, User } from 'lucide-react';
-import { INIT_POSTS, TREND_TAGS, fmtNum } from '@/lib/data';
-import Avatar from '@/components/ui/Avatar';
+import { Search, TrendingUp, UserCheck, UserPlus, Loader2, MessageCircle, X, User, Hash } from 'lucide-react';
+import { TREND_TAGS, fmtNum } from '@/lib/data';
 import { useStore } from '@/store/useStore';
 import { usersAPI, postsAPI, searchUsers } from '@/lib/api';
 import RealPostCard from '@/components/feed/RealPostCard';
@@ -42,7 +41,8 @@ export default function ExplorePage() {
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [showRecentSearches, setShowRecentSearches] = useState(false);
   const [searchFilter, setSearchFilter] = useState<'all' | 'users' | 'posts'>('all');
-  const [searchHistory, setSearchHistory] = useState<{term: string, timestamp: number}[]>([]);
+  const [allUsers, setAllUsers] = useState<ApiUser[]>([]); // Cache for client-side filtering
+  const [loadingUsers, setLoadingUsers] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Load explore posts on mount
@@ -56,6 +56,49 @@ export default function ExplorePage() {
       .finally(() => setLoading(false));
   }, []);
 
+  // Load all users for client-side filtering (faster search)
+  useEffect(() => {
+    const loadAllUsers = async () => {
+      setLoadingUsers(true);
+      try {
+        // Try to get users from cache first
+        const cached = localStorage.getItem('cachedUsers');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          // Check if cache is less than 5 minutes old
+          if (parsed.timestamp && Date.now() - parsed.timestamp < 300000) {
+            setAllUsers(parsed.users);
+            setLoadingUsers(false);
+            return;
+          }
+        }
+
+        // Fetch users from API
+        const response = await usersAPI.getAll?.() || await searchUsers('');
+        const users = response.data || response || [];
+        setAllUsers(users);
+        
+        // Cache users
+        localStorage.setItem('cachedUsers', JSON.stringify({
+          users,
+          timestamp: Date.now()
+        }));
+      } catch (error) {
+        console.error('Failed to load users:', error);
+        // Try to use cached even if expired
+        const cached = localStorage.getItem('cachedUsers');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          setAllUsers(parsed.users);
+        }
+      } finally {
+        setLoadingUsers(false);
+      }
+    };
+
+    loadAllUsers();
+  }, []);
+
   // Load recent searches from localStorage
   useEffect(() => {
     try {
@@ -63,7 +106,6 @@ export default function ExplorePage() {
       if (saved) {
         const parsed = JSON.parse(saved);
         setRecentSearches(parsed.slice(0, 5));
-        setSearchHistory(parsed.map((term: string) => ({ term, timestamp: Date.now() })));
       }
     } catch (e) {
       console.error('Failed to load recent searches:', e);
@@ -75,7 +117,6 @@ export default function ExplorePage() {
     if (!term.trim()) return;
     const updated = [term, ...recentSearches.filter(s => s !== term)].slice(0, 5);
     setRecentSearches(updated);
-    setSearchHistory(updated.map(t => ({ term: t, timestamp: Date.now() })));
     try {
       localStorage.setItem('recentSearches', JSON.stringify(updated));
     } catch (e) {
@@ -83,37 +124,68 @@ export default function ExplorePage() {
     }
   };
 
-  // Enhanced search with better filtering
-  const doSearch = useCallback(async (q: string) => {
-    if (!q.trim()) { 
-      setSearchResults([]); 
-      return; 
+  // Enhanced search with client-side filtering
+  const performSearch = useCallback(async (searchTerm: string) => {
+    if (!searchTerm.trim()) {
+      setSearchResults([]);
+      return;
     }
-    
+
     setSearching(true);
+    
     try {
       let results: ApiUser[] = [];
+
+      // First try client-side search (faster)
+      const lowerQuery = searchTerm.toLowerCase().trim();
       
-      // Always search for users first
-      const users: ApiUser[] = await searchUsers(q);
-      
-      // Filter based on search type
-      if (searchFilter === 'users' || searchFilter === 'all') {
-        results = users;
+      if (allUsers.length > 0) {
+        // Client-side filtering - matches partial names and usernames
+        results = allUsers.filter(user => {
+          const fullNameMatch = user.fullName?.toLowerCase().includes(lowerQuery) || false;
+          const usernameMatch = user.username?.toLowerCase().includes(lowerQuery) || false;
+          const bioMatch = user.bio?.toLowerCase().includes(lowerQuery) || false;
+          
+          // For partial matching, we want to match any part of the name/username
+          // This allows "joh" to match "John Doe" or "johndoe"
+          return fullNameMatch || usernameMatch || bioMatch;
+        });
+
+        // Sort results by relevance (exact matches first)
+        results.sort((a, b) => {
+          const aExact = a.username?.toLowerCase() === lowerQuery || a.fullName?.toLowerCase() === lowerQuery;
+          const bExact = b.username?.toLowerCase() === lowerQuery || b.fullName?.toLowerCase() === lowerQuery;
+          if (aExact && !bExact) return -1;
+          if (!aExact && bExact) return 1;
+          
+          const aStartsWith = a.username?.toLowerCase().startsWith(lowerQuery) || a.fullName?.toLowerCase().startsWith(lowerQuery);
+          const bStartsWith = b.username?.toLowerCase().startsWith(lowerQuery) || b.fullName?.toLowerCase().startsWith(lowerQuery);
+          if (aStartsWith && !bStartsWith) return -1;
+          if (!aStartsWith && bStartsWith) return 1;
+          
+          return 0;
+        });
+
+        // Limit results to top 20 for performance
+        results = results.slice(0, 20);
       }
-      
-      // If searching for posts, we could fetch posts too (future enhancement)
-      if (searchFilter === 'posts') {
-        // Could implement posts search here
-        // For now, just show users
-        results = users;
+
+      // If no results from client-side, try API search
+      if (results.length === 0 && searchTerm.length >= 2) {
+        try {
+          const apiResults = await searchUsers(searchTerm);
+          const apiUsers = apiResults.data || apiResults || [];
+          results = apiUsers.slice(0, 20);
+        } catch (error) {
+          console.log('API search failed, using client results:', error);
+        }
       }
-      
+
       setSearchResults(results);
-      
+
       // Save to recent searches if we have results
       if (results.length > 0) {
-        saveRecentSearch(q);
+        saveRecentSearch(searchTerm);
       }
     } catch (error) {
       console.error('Search error:', error);
@@ -121,19 +193,20 @@ export default function ExplorePage() {
     } finally {
       setSearching(false);
     }
-  }, [searchFilter]);
+  }, [allUsers]);
 
-  // Debounced search with better timing
+  // Debounced search with immediate feedback
   useEffect(() => {
     const t = setTimeout(() => {
       if (query.trim()) {
-        doSearch(query);
+        performSearch(query);
       } else {
         setSearchResults([]);
       }
-    }, 300);
+    }, 200); // Reduced debounce for faster response
+
     return () => clearTimeout(t);
-  }, [query, doSearch]);
+  }, [query, performSearch]);
 
   // Handle search from trending tag
   const handleTagClick = (tag: string) => {
@@ -143,7 +216,7 @@ export default function ExplorePage() {
     if (searchInputRef.current) {
       searchInputRef.current.focus();
     }
-    doSearch(searchTerm);
+    performSearch(searchTerm);
   };
 
   // Handle search from recent search
@@ -152,7 +225,7 @@ export default function ExplorePage() {
     if (searchInputRef.current) {
       searchInputRef.current.focus();
     }
-    doSearch(term);
+    performSearch(term);
     setShowRecentSearches(false);
   };
 
@@ -224,12 +297,34 @@ export default function ExplorePage() {
 
   const clearRecentSearches = () => {
     setRecentSearches([]);
-    setSearchHistory([]);
     try {
       localStorage.removeItem('recentSearches');
     } catch (e) {
       console.error('Failed to clear recent searches:', e);
     }
+  };
+
+  // Highlight matching text
+  const highlightMatch = (text: string, query: string) => {
+    if (!query.trim() || !text) return text;
+    const lowerText = text.toLowerCase();
+    const lowerQuery = query.toLowerCase();
+    const index = lowerText.indexOf(lowerQuery);
+    if (index === -1) return text;
+    return (
+      <>
+        {text.substring(0, index)}
+        <span style={{ 
+          background: 'var(--accent)', 
+          color: 'white', 
+          padding: '0 2px',
+          borderRadius: '2px'
+        }}>
+          {text.substring(index, index + query.length)}
+        </span>
+        {text.substring(index + query.length)}
+      </>
+    );
   };
 
   // Show loading state
@@ -243,7 +338,7 @@ export default function ExplorePage() {
 
   return (
     <div style={{ height:'100%', overflowY:'auto', padding:'20px 20px' }}>
-      {/* Search bar with flexible options */}
+      {/* Search bar */}
       <div style={{ position:'relative', maxWidth:560, margin:'0 auto 24px' }}>
         <div style={{ 
           display: 'flex', 
@@ -252,16 +347,9 @@ export default function ExplorePage() {
           border: '1.5px solid var(--border)',
           borderRadius: 50,
           padding: '4px 4px 4px 16px',
-          transition: 'border-color 0.2s',
-          alignItems: 'center'
-        }}
-        onFocus={() => {
-          const parent = document.activeElement?.parentElement;
-          if (parent) parent.style.borderColor = 'var(--accent)';
-        }}
-        onBlur={() => {
-          const parent = document.activeElement?.parentElement;
-          if (parent) parent.style.borderColor = 'var(--border)';
+          transition: 'border-color 0.2s, box-shadow 0.2s',
+          alignItems: 'center',
+          boxShadow: query ? '0 0 0 3px rgba(var(--accent-rgb, 99, 102, 241), 0.1)' : 'none'
         }}
         >
           <Search size={18} style={{ color: 'var(--text3)', flexShrink: 0 }} />
@@ -271,8 +359,8 @@ export default function ExplorePage() {
             value={query}
             onChange={e => setQuery(e.target.value)}
             onFocus={() => setShowRecentSearches(true)}
-            onBlur={() => setTimeout(() => setShowRecentSearches(false), 300)}
-            placeholder="Search people, posts, or topics..."
+            onBlur={() => setTimeout(() => setShowRecentSearches(false), 200)}
+            placeholder="Search by name, username, or bio..."
             style={{
               flex: 1,
               background: 'transparent',
@@ -284,6 +372,7 @@ export default function ExplorePage() {
               fontFamily:'var(--font-dm-sans), sans-serif',
               minWidth: 0
             }}
+            autoComplete="off"
           />
           
           {query && !searching && (
@@ -331,7 +420,7 @@ export default function ExplorePage() {
               onClick={() => {
                 setSearchFilter(filter.value as 'all' | 'users' | 'posts');
                 if (query.trim()) {
-                  doSearch(query);
+                  performSearch(query);
                 }
               }}
               style={{
@@ -350,22 +439,30 @@ export default function ExplorePage() {
                 alignItems: 'center',
                 gap: 4
               }}
-              onMouseEnter={e => {
-                if (searchFilter !== filter.value) {
-                  e.currentTarget.style.background = 'var(--bg3)';
-                }
-              }}
-              onMouseLeave={e => {
-                if (searchFilter !== filter.value) {
-                  e.currentTarget.style.background = 'transparent';
-                }
-              }}
             >
               {filter.icon}
               {filter.label}
             </button>
           ))}
         </div>
+
+        {/* Search stats */}
+        {query && !searching && (
+          <div style={{ 
+            textAlign: 'center', 
+            marginTop: 6,
+            fontSize: 11,
+            color: 'var(--text3)'
+          }}>
+            {searchResults.length > 0 ? (
+              <span>Found {searchResults.length} user{searchResults.length !== 1 ? 's' : ''}</span>
+            ) : query.length >= 2 ? (
+              <span>No users found. Try a different search term.</span>
+            ) : (
+              <span>Type at least 2 characters to search</span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Recent Searches */}
@@ -443,7 +540,7 @@ export default function ExplorePage() {
         )}
       </AnimatePresence>
 
-      {/* Search results dropdown - WITH ALL BUTTONS RESTORED */}
+      {/* Search results dropdown */}
       <AnimatePresence>
         {query.trim() && (
           <motion.div
@@ -457,7 +554,9 @@ export default function ExplorePage() {
               border: '1px solid var(--border)', 
               borderRadius: 14, 
               overflow: 'hidden',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+              boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+              maxHeight: 500,
+              overflowY: 'auto'
             }}
           >
             {searching && (
@@ -467,7 +566,7 @@ export default function ExplorePage() {
               </div>
             )}
             
-            {!searching && searchResults.length === 0 && (
+            {!searching && searchResults.length === 0 && query.length >= 2 && (
               <div style={{ padding:'24px 20px', textAlign:'center' }}>
                 <div style={{ 
                   fontSize: 40, 
@@ -491,9 +590,13 @@ export default function ExplorePage() {
                   color: 'var(--text3)',
                   borderBottom: '1px solid var(--border)',
                   background: 'var(--bg3)',
-                  fontWeight: 500
+                  fontWeight: 500,
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
                 }}>
-                  {searchResults.length} {searchResults.length === 1 ? 'user' : 'users'} found
+                  <span>{searchResults.length} {searchResults.length === 1 ? 'user' : 'users'} found</span>
+                  {loadingUsers && <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} />}
                 </div>
                 
                 {searchResults.map((u, i) => (
@@ -538,10 +641,14 @@ export default function ExplorePage() {
                       </div>
                     )}
                     
-                    {/* User info */}
+                    {/* User info with highlighted matches */}
                     <div style={{ flex:1, minWidth:0 }}>
-                      <div style={{ fontSize:14, fontWeight:600, color:'var(--text)' }}>{u.fullName}</div>
-                      <div style={{ fontSize:12, color:'var(--text3)' }}>@{u.username}</div>
+                      <div style={{ fontSize:14, fontWeight:600, color:'var(--text)' }}>
+                        {highlightMatch(u.fullName || '', query)}
+                      </div>
+                      <div style={{ fontSize:12, color:'var(--text3)' }}>
+                        @{highlightMatch(u.username || '', query)}
+                      </div>
                       {u.bio && (
                         <div style={{ 
                           fontSize:12, 
@@ -552,7 +659,7 @@ export default function ExplorePage() {
                           overflow:'hidden',
                           textOverflow:'ellipsis'
                         }}>
-                          {u.bio}
+                          {highlightMatch(u.bio, query)}
                         </div>
                       )}
                       {u._count && (
@@ -569,10 +676,9 @@ export default function ExplorePage() {
                       )}
                     </div>
                     
-                    {/* Action buttons - FULLY RESTORED */}
+                    {/* Action buttons */}
                     {u.id !== currentUser?.id && (
                       <div style={{ display:'flex', gap:6, alignItems:'center', flexShrink:0 }}>
-                        {/* Message Button */}
                         <button 
                           onClick={() => handleMessage(u)}
                           style={{
@@ -604,7 +710,6 @@ export default function ExplorePage() {
                           <span style={{ display: 'inline' }}>Message</span>
                         </button>
                         
-                        {/* Follow Button */}
                         <button 
                           onClick={() => handleFollow(u)}
                           style={{
@@ -624,24 +729,6 @@ export default function ExplorePage() {
                             transition: 'all 0.2s',
                             whiteSpace: 'nowrap'
                           }}
-                          onMouseEnter={e => {
-                            if (!following[u.id]) {
-                              e.currentTarget.style.opacity = '0.9';
-                            } else {
-                              e.currentTarget.style.background = 'rgba(245,85,85,0.1)';
-                              e.currentTarget.style.borderColor = 'var(--red)';
-                              e.currentTarget.style.color = 'var(--red)';
-                            }
-                          }}
-                          onMouseLeave={e => {
-                            if (!following[u.id]) {
-                              e.currentTarget.style.opacity = '1';
-                            } else {
-                              e.currentTarget.style.background = 'transparent';
-                              e.currentTarget.style.borderColor = 'var(--border2)';
-                              e.currentTarget.style.color = 'var(--text2)';
-                            }
-                          }}
                         >
                           {following[u.id] ? (
                             <><UserCheck size={12}/> Following</>
@@ -652,7 +739,6 @@ export default function ExplorePage() {
                       </div>
                     )}
                     
-                    {/* Own profile - show stats instead */}
                     {u.id === currentUser?.id && (
                       <div style={{ 
                         fontSize: 11, 
@@ -688,18 +774,6 @@ export default function ExplorePage() {
             gap:6 
           }}>
             <TrendingUp size={15}/> Trending Posts
-            {query && searchFilter === 'posts' && (
-              <span style={{ 
-                fontSize: 12, 
-                fontWeight: 400, 
-                color: 'var(--text3)',
-                background: 'var(--bg3)',
-                padding: '2px 10px',
-                borderRadius: 12
-              }}>
-                Filtered: "{query}"
-              </span>
-            )}
           </h2>
           
           {explorePosts.length === 0 ? (
@@ -792,36 +866,12 @@ export default function ExplorePage() {
               lineHeight: 2,
               listStyleType: 'none'
             }}>
-              <li>🔍 Type <strong>name</strong> or <strong>username</strong></li>
+              <li>🔍 Type <strong>any part</strong> of a name or username</li>
               <li>🏷️ Use <strong>#hashtag</strong> to find topics</li>
               <li>👤 Filter by <strong>Users</strong> or <strong>Posts</strong></li>
               <li>🕒 Recent searches saved for quick access</li>
               <li>💬 Click <strong>Message</strong> to start a chat</li>
             </ul>
-          </div>
-
-          {/* Quick stats */}
-          <div style={{
-            marginTop: 16,
-            padding: '12px 16px',
-            background: 'var(--bg2)',
-            borderRadius: 12,
-            border: '1px solid var(--border)',
-            display: 'flex',
-            justifyContent: 'space-around'
-          }}>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--accent)' }}>
-                {explorePosts.length}
-              </div>
-              <div style={{ fontSize: 10, color: 'var(--text3)' }}>Trending Posts</div>
-            </div>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--accent)' }}>
-                {searchResults.length > 0 ? searchResults.length : '-'}
-              </div>
-              <div style={{ fontSize: 10, color: 'var(--text3)' }}>Search Results</div>
-            </div>
           </div>
         </div>
       </div>
@@ -836,7 +886,6 @@ export default function ExplorePage() {
             grid-template-columns: 1fr !important;
           }
         }
-        /* Smooth scrollbar */
         ::-webkit-scrollbar {
           width: 6px;
         }
