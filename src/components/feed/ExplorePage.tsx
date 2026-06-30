@@ -72,32 +72,48 @@ export default function ExplorePage() {
           }
         }
 
-        // Fetch users - try different methods
+        // Fetch users - use searchUsers with empty string to get users
         let users: ApiUser[] = [];
         
         try {
-          // Try to get all users if the method exists
-          if (usersAPI.getAll) {
-            const response = await usersAPI.getAll();
-            users = response.data || response || [];
-          } else {
-            // Fallback: search with empty query to get users
-            const response = await searchUsers('');
-            users = response.data || response || [];
-          }
-        } catch (error) {
-          console.log('API fetch failed, trying searchUsers with empty query');
+          // Try search with empty query to get all users
           const response = await searchUsers('');
           users = response.data || response || [];
+          
+          // If response is an array directly
+          if (Array.isArray(response)) {
+            users = response;
+          }
+        } catch (error) {
+          console.log('Search with empty query failed:', error);
+          // Try to get users from following list as fallback
+          try {
+            if (currentUser?.id) {
+              const followingRes = await usersAPI.getFollowing(currentUser.id);
+              const followingUsers = followingRes.data || followingRes || [];
+              if (Array.isArray(followingUsers) && followingUsers.length > 0) {
+                users = followingUsers;
+              }
+            }
+          } catch (e) {
+            console.log('Failed to get following list:', e);
+          }
+        }
+
+        // Ensure users is an array
+        if (!Array.isArray(users)) {
+          users = [];
         }
 
         setAllUsers(users);
         
         // Cache users
-        localStorage.setItem('cachedUsers', JSON.stringify({
-          users,
-          timestamp: Date.now()
-        }));
+        if (users.length > 0) {
+          localStorage.setItem('cachedUsers', JSON.stringify({
+            users,
+            timestamp: Date.now()
+          }));
+        }
       } catch (error) {
         console.error('Failed to load users:', error);
         // Try to use cached even if expired
@@ -105,7 +121,9 @@ export default function ExplorePage() {
         if (cached) {
           try {
             const parsed = JSON.parse(cached);
-            setAllUsers(parsed.users);
+            if (Array.isArray(parsed.users)) {
+              setAllUsers(parsed.users);
+            }
           } catch (e) {
             console.error('Failed to parse cached users:', e);
           }
@@ -116,7 +134,7 @@ export default function ExplorePage() {
     };
 
     loadAllUsers();
-  }, []);
+  }, [currentUser?.id]);
 
   // Load recent searches from localStorage
   useEffect(() => {
@@ -188,8 +206,10 @@ export default function ExplorePage() {
       if (results.length === 0 && searchTerm.length >= 2) {
         try {
           const response = await searchUsers(searchTerm);
-          const apiUsers = response.data || response || [];
-          results = Array.isArray(apiUsers) ? apiUsers.slice(0, 20) : [];
+          let apiUsers = response.data || response || [];
+          if (Array.isArray(apiUsers)) {
+            results = apiUsers.slice(0, 20);
+          }
         } catch (error) {
           console.log('API search failed:', error);
         }
