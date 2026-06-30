@@ -210,7 +210,7 @@ export default function FeedPage() {
                       width: 40,
                       height: 40,
                       borderRadius: '50%',
-                      background: 'linear-gradient(135deg, var(--accent), var(--pink))',
+                      background: 'var(--accent)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -247,7 +247,7 @@ export default function FeedPage() {
                   fontSize: 14,
                   outline: 'none',
                   resize: 'none',
-                  fontFamily: 'DM Sans, sans-serif',
+                  fontFamily:'var(--font-dm-sans), sans-serif',
                   lineHeight: 1.55,
                   transition: 'border-color 0.2s'
                 }}
@@ -378,7 +378,7 @@ export default function FeedPage() {
                           fontSize: 12,
                           color: 'var(--text2)',
                           cursor: 'pointer',
-                          fontFamily: 'DM Sans',
+                          fontFamily:'var(--font-dm-sans)',
                           transition: 'all 0.2s'
                         }}
                         onMouseEnter={e => (e.currentTarget.style.background = 'var(--accent)')}
@@ -415,7 +415,7 @@ export default function FeedPage() {
                   color: 'var(--text2)',
                   fontSize: 12,
                   cursor: 'pointer',
-                  fontFamily: 'DM Sans',
+                  fontFamily:'var(--font-dm-sans)',
                   display: 'flex',
                   alignItems: 'center',
                   gap: 5,
@@ -453,7 +453,7 @@ export default function FeedPage() {
                   color: showFeelings ? 'white' : 'var(--text2)',
                   fontSize: 12,
                   cursor: 'pointer',
-                  fontFamily: 'DM Sans',
+                  fontFamily:'var(--font-dm-sans)',
                   display: 'flex',
                   alignItems: 'center',
                   gap: 5,
@@ -469,7 +469,7 @@ export default function FeedPage() {
               onClick={handlePost}
               disabled={!canPost}
               style={{
-                background: 'linear-gradient(135deg, var(--accent), var(--accent3))',
+                background: 'var(--accent)',
                 border: 'none',
                 borderRadius: 10,
                 padding: '8px 18px',
@@ -481,7 +481,7 @@ export default function FeedPage() {
                 display: 'flex',
                 alignItems: 'center',
                 gap: 6,
-                fontFamily: 'Syne, sans-serif'
+                fontFamily:'var(--font-syne), sans-serif'
               }}
             >
               {posting ? (
@@ -562,7 +562,7 @@ export default function FeedPage() {
           >
             <div
               style={{
-                fontFamily: 'Syne, sans-serif',
+                fontFamily:'var(--font-syne), sans-serif',
                 fontSize: 18,
                 fontWeight: 700,
                 color: 'var(--text2)',
@@ -605,7 +605,7 @@ export default function FeedPage() {
                   color: 'var(--text2)',
                   fontSize: 13,
                   cursor: 'pointer',
-                  fontFamily: 'DM Sans',
+                  fontFamily:'var(--font-dm-sans)',
                   marginTop: 4,
                   transition: 'all 0.2s'
                 }}

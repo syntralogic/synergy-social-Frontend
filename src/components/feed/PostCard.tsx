@@ -127,7 +127,7 @@ export default function RealPostCard({ post, onLikeToggle, onCommentAdded }: Pro
               width: 38,
               height: 38,
               borderRadius: '50%',
-              background: 'linear-gradient(135deg, var(--accent), var(--pink))',
+              background: 'var(--accent)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -147,7 +147,7 @@ export default function RealPostCard({ post, onLikeToggle, onCommentAdded }: Pro
                 fontSize: 14,
                 fontWeight: 600,
                 color: 'var(--text)',
-                fontFamily: 'DM Sans, sans-serif'
+                fontFamily:'var(--font-dm-sans), sans-serif'
               }}
             >
               {authorFullName}
@@ -208,7 +208,7 @@ export default function RealPostCard({ post, onLikeToggle, onCommentAdded }: Pro
             fontSize: 14,
             color: 'var(--text)',
             lineHeight: 1.65,
-            fontFamily: 'DM Sans, sans-serif'
+            fontFamily:'var(--font-dm-sans), sans-serif'
           }}
         >
           {post.content}
@@ -302,7 +302,7 @@ export default function RealPostCard({ post, onLikeToggle, onCommentAdded }: Pro
                 color: 'var(--text)',
                 fontSize: 13,
                 outline: 'none',
-                fontFamily: 'DM Sans, sans-serif'
+                fontFamily:'var(--font-dm-sans), sans-serif'
               }}
               onFocus={e => (e.target.style.borderColor = 'var(--accent)')}
               onBlur={e => (e.target.style.borderColor = 'var(--border)')}
@@ -312,7 +312,7 @@ export default function RealPostCard({ post, onLikeToggle, onCommentAdded }: Pro
               disabled={commenting || !comment.trim()}
               style={{
                 padding: '8px 14px',
-                background: 'linear-gradient(135deg, var(--accent), var(--accent3))',
+                background: 'var(--accent)',
                 border: 'none',
                 borderRadius: 20,
                 color: 'white',
@@ -376,7 +376,7 @@ function ActionBtn({
         cursor: 'pointer',
         color: active ? activeColor : 'var(--text3)',
         fontSize: 13,
-        fontFamily: 'DM Sans, sans-serif'
+        fontFamily:'var(--font-dm-sans), sans-serif'
       }}
     >
       {icon}

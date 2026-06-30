@@ -161,7 +161,7 @@ export default function ExplorePage() {
               {u.avatar ? (
                 <img src={u.avatar} alt={u.fullName} style={{ width:40, height:40, borderRadius:'50%', objectFit:'cover' }}/>
               ) : (
-                <div style={{ width:40, height:40, borderRadius:'50%', background:'linear-gradient(135deg, var(--accent), var(--pink))', display:'flex', alignItems:'center', justifyContent:'center', fontSize:15, fontWeight:700, color:'white' }}>
+                <div style={{ width:40, height:40, borderRadius:'50%', background:'var(--accent)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:15, fontWeight:700, color:'white' }}>
                   {u.fullName?.charAt(0)?.toUpperCase() || u.username?.charAt(0)?.toUpperCase()}
                 </div>
               )}
@@ -172,7 +172,7 @@ export default function ExplorePage() {
               {u.id !== currentUser?.id && (
                 <div style={{ display:'flex', gap:6, alignItems:'center' }}>
                   <button onClick={() => handleMessage(u)}
-                    style={{ padding:'5px 12px', borderRadius:20, border:'1.5px solid var(--border)', fontSize:12, fontWeight:600, cursor:'pointer', fontFamily:'DM Sans',
+                    style={{ padding:'5px 12px', borderRadius:20, border:'1.5px solid var(--border)', fontSize:12, fontWeight:600, cursor:'pointer', fontFamily:'var(--font-dm-sans)',
                       background: 'transparent',
                       color: 'var(--text2)',
                       display:'flex', alignItems:'center', gap:4
@@ -180,7 +180,7 @@ export default function ExplorePage() {
                     <MessageCircle size={12}/> Message
                   </button>
                   <button onClick={() => handleFollow(u)}
-                    style={{ padding:'5px 14px', borderRadius:20, border:'1.5px solid', fontSize:12, fontWeight:600, cursor:'pointer', fontFamily:'DM Sans',
+                    style={{ padding:'5px 14px', borderRadius:20, border:'1.5px solid', fontSize:12, fontWeight:600, cursor:'pointer', fontFamily:'var(--font-dm-sans)',
                       borderColor: following[u.id] ? 'var(--border2)' : 'var(--accent)',
                       background:  following[u.id] ? 'transparent' : 'var(--accent)',
                       color:       following[u.id] ? 'var(--text2)' : 'white',
@@ -198,7 +198,7 @@ export default function ExplorePage() {
       <div style={{ maxWidth:900, margin:'0 auto', display:'grid', gridTemplateColumns:'1fr 300px', gap:24 }}>
         {/* Posts feed - using RealPostCard */}
         <div>
-          <h2 style={{ fontFamily:'Syne, sans-serif', fontSize:16, fontWeight:700, color:'var(--text)', marginBottom:14, display:'flex', alignItems:'center', gap:6 }}>
+          <h2 style={{ fontFamily:'var(--font-syne), sans-serif', fontSize:16, fontWeight:700, color:'var(--text)', marginBottom:14, display:'flex', alignItems:'center', gap:6 }}>
             <TrendingUp size={15}/> Trending Posts
           </h2>
           {explorePosts.length === 0 ? (
@@ -223,7 +223,7 @@ export default function ExplorePage() {
 
         {/* Trending Tags only */}
         <div>
-          <h2 style={{ fontFamily:'Syne, sans-serif', fontSize:16, fontWeight:700, color:'var(--text)', marginBottom:12 }}>Trending Tags</h2>
+          <h2 style={{ fontFamily:'var(--font-syne), sans-serif', fontSize:16, fontWeight:700, color:'var(--text)', marginBottom:12 }}>Trending Tags</h2>
           <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
             {TREND_TAGS.map(t => (
               <span key={t} onClick={() => setQuery(t.replace('#',''))}

@@ -58,11 +58,11 @@ export default function Sidebar({ mobile=false }: { mobile?: boolean }) {
       {/* Logo */}
       <div style={{ padding:'22px 20px 18px', borderBottom:'1px solid var(--border)' }}>
         <div style={{ display:'flex', alignItems:'center', gap:11 }}>
-          <div style={{ width:36, height:36, borderRadius:10, background:'linear-gradient(135deg, var(--accent), var(--pink))', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 14px rgba(124,106,245,.4)', flexShrink:0 }}>
+          <div style={{ width:36, height:36, borderRadius:10, background:'var(--accent)', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 14px rgba(124,106,245,.4)', flexShrink:0 }}>
             <Sparkles size={17} color="white"/>
           </div>
           <div>
-            <div style={{ fontFamily:'Syne, sans-serif', fontWeight:800, fontSize:16, color:'var(--text)', letterSpacing:'-0.3px', lineHeight:1.2 }}>Synergy Social</div>
+            <div style={{ fontFamily:'var(--font-syne), sans-serif', fontWeight:800, fontSize:16, color:'var(--text)', letterSpacing:'-0.3px', lineHeight:1.2 }}>Synergy Social</div>
             <div style={{ fontSize:10, color:'var(--text3)', marginTop:1 }}>Connect · Create · Grow</div>
           </div>
         </div>
@@ -82,10 +82,10 @@ export default function Sidebar({ mobile=false }: { mobile?: boolean }) {
               style={{
                 width:'100%', display:'flex', alignItems:'center', gap:12, padding:'11px 14px',
                 borderRadius:12, border:'none', cursor:'pointer', marginBottom:3,
-                background: active ? 'linear-gradient(135deg, rgba(124,106,245,.18), rgba(245,103,168,.08))' : 'transparent',
+                background: active ? 'rgba(124,106,245,.16)' : 'transparent',
                 color: active ? 'var(--accent2)' : 'var(--text2)',
                 transition:'all 0.2s',
-                fontFamily:'DM Sans, sans-serif', fontSize:14, fontWeight: active ? 600 : 400,
+                fontFamily:'var(--font-dm-sans), sans-serif', fontSize:14, fontWeight: active ? 600 : 400,
                 textAlign:'left', position:'relative',
               }}
             >
@@ -104,7 +104,7 @@ export default function Sidebar({ mobile=false }: { mobile?: boolean }) {
 
       {/* Bottom */}
       <div style={{ padding:'12px 10px', borderTop:'1px solid var(--border)' }}>
-        <button onClick={toggleTheme} style={{ width:'100%', display:'flex', alignItems:'center', gap:12, padding:'9px 14px', borderRadius:10, border:'none', cursor:'pointer', marginBottom:4, background:'transparent', color:'var(--text2)', fontFamily:'DM Sans, sans-serif', fontSize:13, textAlign:'left' }}>
+        <button onClick={toggleTheme} style={{ width:'100%', display:'flex', alignItems:'center', gap:12, padding:'9px 14px', borderRadius:10, border:'none', cursor:'pointer', marginBottom:4, background:'transparent', color:'var(--text2)', fontFamily:'var(--font-dm-sans), sans-serif', fontSize:13, textAlign:'left' }}>
           {theme==='dark' ? <Sun size={16}/> : <Moon size={16}/>}
           {theme==='dark' ? 'Light Mode' : 'Dark Mode'}
         </button>
@@ -113,12 +113,12 @@ export default function Sidebar({ mobile=false }: { mobile?: boolean }) {
           {currentUser?.avatar ? (
             <img src={currentUser.avatar} alt={displayName} style={{ width:32, height:32, borderRadius:'50%', objectFit:'cover' }}/>
           ) : (
-            <div style={{ width:32, height:32, borderRadius:'50%', background:'linear-gradient(135deg, var(--accent), var(--pink))', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:700, color:'white', flexShrink:0 }}>
+            <div style={{ width:32, height:32, borderRadius:'50%', background:'var(--accent)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:700, color:'white', flexShrink:0 }}>
               {initials}
             </div>
           )}
           <div style={{ flex:1, minWidth:0 }}>
-            <div style={{ fontSize:13, fontWeight:600, color:'var(--text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', fontFamily:'DM Sans, sans-serif' }}>{displayName}</div>
+            <div style={{ fontSize:13, fontWeight:600, color:'var(--text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', fontFamily:'var(--font-dm-sans), sans-serif' }}>{displayName}</div>
             <div style={{ fontSize:11, color:'var(--text3)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{displayHandle}</div>
           </div>
           <button onClick={logout} title="Logout" style={{ background:'none', border:'none', color:'var(--text3)', cursor:'pointer', padding:4, flexShrink:0 }}>

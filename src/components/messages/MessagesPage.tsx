@@ -215,11 +215,11 @@ export default function MessagesPage() {
       <div style={{ width:300, flexShrink:0, borderRight:'1px solid var(--border)', display: mobileView ? 'none' : 'flex', flexDirection:'column', height:'100%', background:'var(--bg2)' }}
         className="conv-list">
         <div style={{ padding:'16px 16px 12px', borderBottom:'1px solid var(--border)' }}>
-          <h2 style={{ fontFamily:'Syne, sans-serif', fontSize:18, fontWeight:800, color:'var(--text)', marginBottom:12 }}>Messages</h2>
+          <h2 style={{ fontFamily:'var(--font-syne), sans-serif', fontSize:18, fontWeight:800, color:'var(--text)', marginBottom:12 }}>Messages</h2>
           <div style={{ position:'relative' }}>
             <div style={{ position:'absolute', left:10, top:'50%', transform:'translateY(-50%)', color:'var(--text3)' }}><Search size={14}/></div>
             <input placeholder="Search conversations…"
-              style={{ width:'100%', background:'var(--bg3)', border:'1px solid var(--border)', borderRadius:20, padding:'8px 12px 8px 34px', fontSize:13, color:'var(--text)', outline:'none', fontFamily:'DM Sans' }}
+              style={{ width:'100%', background:'var(--bg3)', border:'1px solid var(--border)', borderRadius:20, padding:'8px 12px 8px 34px', fontSize:13, color:'var(--text)', outline:'none', fontFamily:'var(--font-dm-sans)' }}
               onFocus={e=>(e.target.style.borderColor='var(--accent)')} onBlur={e=>(e.target.style.borderColor='var(--border)')}/>
           </div>
         </div>
@@ -257,7 +257,7 @@ export default function MessagesPage() {
                     {other.avatar ? (
                       <img src={other.avatar} alt={other.fullName} style={{ width:44, height:44, borderRadius:'50%', objectFit:'cover' }}/>
                     ) : (
-                      <div style={{ width:44, height:44, borderRadius:'50%', background:'linear-gradient(135deg, var(--accent), var(--pink))', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, fontWeight:700, color:'white' }}>
+                      <div style={{ width:44, height:44, borderRadius:'50%', background:'var(--accent)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, fontWeight:700, color:'white' }}>
                         {otherInitials}
                       </div>
                     )}
@@ -267,7 +267,7 @@ export default function MessagesPage() {
                   </div>
                   <div style={{ flex:1, minWidth:0 }}>
                     <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:2 }}>
-                      <span style={{ fontSize:14, fontWeight:600, color:'var(--text)', fontFamily:'DM Sans' }}>{other.fullName}</span>
+                      <span style={{ fontSize:14, fontWeight:600, color:'var(--text)', fontFamily:'var(--font-dm-sans)' }}>{other.fullName}</span>
                       {conv.lastMessageAt && <span style={{ fontSize:11, color:'var(--text3)' }}>{timeAgo(conv.lastMessageAt)}</span>}
                     </div>
                     <div style={{ fontSize:12, color:'var(--text3)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
@@ -304,14 +304,14 @@ export default function MessagesPage() {
                   {other.avatar ? (
                     <img src={other.avatar} alt={other.fullName} style={{ width:40, height:40, borderRadius:'50%', objectFit:'cover' }}/>
                   ) : (
-                    <div style={{ width:40, height:40, borderRadius:'50%', background:'linear-gradient(135deg, var(--accent), var(--pink))', display:'flex', alignItems:'center', justifyContent:'center', fontSize:13, fontWeight:700, color:'white' }}>
+                    <div style={{ width:40, height:40, borderRadius:'50%', background:'var(--accent)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:13, fontWeight:700, color:'white' }}>
                       {otherInitials}
                     </div>
                   )}
                   {isOnline && <div style={{ position:'absolute', bottom:1, right:1, width:10, height:10, borderRadius:'50%', background:'var(--green)', border:'2px solid var(--bg2)' }}/>}
                 </div>
                 <div>
-                  <div style={{ fontFamily:'Syne, sans-serif', fontSize:15, fontWeight:700, color:'var(--text)' }}>{other.fullName}</div>
+                  <div style={{ fontFamily:'var(--font-syne), sans-serif', fontSize:15, fontWeight:700, color:'var(--text)' }}>{other.fullName}</div>
                   <div style={{ fontSize:12, color: isOnline ? 'var(--green)' : 'var(--text3)' }}>
                     {isOnline ? '● Online' : `@${other.username}`}
                   </div>
@@ -323,7 +323,7 @@ export default function MessagesPage() {
                 {messages.length === 0 ? (
                   <div style={{ margin:'auto', textAlign:'center', color:'var(--text3)' }}>
                     <div style={{ fontSize:32, marginBottom:10 }}>💬</div>
-                    <div style={{ fontFamily:'Syne, sans-serif', fontSize:15, fontWeight:600, color:'var(--text2)', marginBottom:4 }}>Start the conversation</div>
+                    <div style={{ fontFamily:'var(--font-syne), sans-serif', fontSize:15, fontWeight:600, color:'var(--text2)', marginBottom:4 }}>Start the conversation</div>
                     <div style={{ fontSize:13 }}>Say hi to {other.fullName}!</div>
                   </div>
                 ) : (
@@ -334,15 +334,15 @@ export default function MessagesPage() {
                         {!isMe && (
                           other.avatar
                             ? <img src={other.avatar} alt="" style={{ width:28, height:28, borderRadius:'50%', objectFit:'cover', flexShrink:0 }}/>
-                            : <div style={{ width:28, height:28, borderRadius:'50%', background:'linear-gradient(135deg, var(--accent), var(--pink))', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700, color:'white', flexShrink:0 }}>{otherInitials}</div>
+                            : <div style={{ width:28, height:28, borderRadius:'50%', background:'var(--accent)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700, color:'white', flexShrink:0 }}>{otherInitials}</div>
                         )}
                         <div style={{ maxWidth:'65%' }}>
                           <div style={{
                             padding:'10px 14px', borderRadius: isMe ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
-                            background: isMe ? 'linear-gradient(135deg, var(--accent), var(--accent3))' : 'var(--bg2)',
+                            background: isMe ? 'var(--accent)' : 'var(--bg2)',
                             border: isMe ? 'none' : '1px solid var(--border)',
                             color: isMe ? 'white' : 'var(--text)',
-                            fontSize:14, lineHeight:1.55, fontFamily:'DM Sans, sans-serif',
+                            fontSize:14, lineHeight:1.55, fontFamily:'var(--font-dm-sans), sans-serif',
                           }}>
                             {msg.content}
                           </div>
@@ -376,7 +376,7 @@ export default function MessagesPage() {
                     onChange={e => { setText(e.target.value); handleTyping(); }}
                     onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
                     placeholder="Type a message… (Enter to send)"
-                    style={{ flex:1, background:'var(--bg3)', border:'1.5px solid var(--border)', borderRadius:24, padding:'11px 16px', color:'var(--text)', fontSize:14, outline:'none', fontFamily:'DM Sans, sans-serif', transition:'border-color 0.2s' }}
+                    style={{ flex:1, background:'var(--bg3)', border:'1.5px solid var(--border)', borderRadius:24, padding:'11px 16px', color:'var(--text)', fontSize:14, outline:'none', fontFamily:'var(--font-dm-sans), sans-serif', transition:'border-color 0.2s' }}
                     onFocus={e => (e.target.style.borderColor='var(--accent)')}
                     onBlur={e  => (e.target.style.borderColor='var(--border)')}
                   />
@@ -384,7 +384,7 @@ export default function MessagesPage() {
                     whileTap={{ scale:0.9 }}
                     onClick={handleSend}
                     disabled={sending || !text.trim()}
-                    style={{ width:44, height:44, borderRadius:'50%', border:'none', background: text.trim() ? 'linear-gradient(135deg, var(--accent), var(--accent3))' : 'var(--bg3)', color: text.trim() ? 'white' : 'var(--text3)', display:'flex', alignItems:'center', justifyContent:'center', cursor: text.trim() ? 'pointer' : 'not-allowed', flexShrink:0 }}
+                    style={{ width:44, height:44, borderRadius:'50%', border:'none', background: text.trim() ? 'var(--accent)' : 'var(--bg3)', color: text.trim() ? 'white' : 'var(--text3)', display:'flex', alignItems:'center', justifyContent:'center', cursor: text.trim() ? 'pointer' : 'not-allowed', flexShrink:0 }}
                   >
                     <Send size={16}/>
                   </motion.button>
@@ -395,7 +395,7 @@ export default function MessagesPage() {
         })() : (
           <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column', gap:12, color:'var(--text3)' }}>
             <div style={{ fontSize:48 }}>💬</div>
-            <div style={{ fontFamily:'Syne, sans-serif', fontSize:18, fontWeight:700, color:'var(--text2)' }}>Your Messages</div>
+            <div style={{ fontFamily:'var(--font-syne), sans-serif', fontSize:18, fontWeight:700, color:'var(--text2)' }}>Your Messages</div>
             <div style={{ fontSize:14 }}>Select a conversation to start chatting</div>
           </div>
         )}

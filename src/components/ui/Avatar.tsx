@@ -29,12 +29,12 @@ export default function Avatar({ user, size='md', online=false, className='', ri
   const displayName = user.fullName || user.name || '';
   const initials    = user.initials ||
     displayName.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase() || '?';
-  const color = user.color || 'linear-gradient(135deg, var(--accent), var(--pink))';
+  const color = user.color || 'var(--accent)';
 
   return (
     <div className={`relative flex-shrink-0 ${className}`} style={{ width:wh, height:wh, flexShrink:0, position:'relative' }}>
       {ring && (
-        <div style={{ position:'absolute', inset:-2, borderRadius:'50%', background:'linear-gradient(135deg, var(--accent), var(--pink))', zIndex:0 }}/>
+        <div style={{ position:'absolute', inset:-2, borderRadius:'50%', background:'var(--accent)', zIndex:0 }}/>
       )}
       {user.avatar ? (
         <img src={user.avatar} alt={displayName}
@@ -43,7 +43,7 @@ export default function Avatar({ user, size='md', online=false, className='', ri
       ) : (
         <div style={{ width:wh, height:wh, borderRadius:'50%', background:color, color:'white',
           display:'flex', alignItems:'center', justifyContent:'center',
-          fontSize:font, fontFamily:'Syne, sans-serif', fontWeight:700, position:'relative', zIndex:1,
+          fontSize:font, fontFamily:'var(--font-syne), sans-serif', fontWeight:700, position:'relative', zIndex:1,
           border: ring ? '2px solid var(--bg)' : 'none' }}>
           {initials}
         </div>

@@ -309,7 +309,7 @@ export default function ProfilePage() {
   
   const coverBg = coverImageUrl && !coverError
     ? `url(${coverImageUrl}) center/cover`
-    : 'linear-gradient(135deg, var(--accent), var(--pink), var(--cyan))';
+    : 'var(--accent)';
 
   // Render post grid item
   const PostGridItem = ({ post }: { post: ApiPost }) => {
@@ -613,7 +613,7 @@ export default function ProfilePage() {
                 onError={() => setAvatarError(true)}
               />
             ) : (
-              <div style={{ width: 84, height: 84, borderRadius: '50%', background: 'linear-gradient(135deg, var(--accent), var(--pink))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 800, color: 'white', border: '3px solid var(--bg)' }}>
+              <div style={{ width: 84, height: 84, borderRadius: '50%', background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 800, color: 'white', border: '3px solid var(--bg)' }}>
                 {initials}
               </div>
             )}
@@ -669,14 +669,14 @@ export default function ProfilePage() {
           </div>
 
           <motion.button whileTap={{ scale: 0.95 }} onClick={() => setEditOpen(true)}
-            style={{ padding: '9px 20px', background: 'linear-gradient(135deg, var(--accent), var(--accent3))', border: 'none', borderRadius: 10, color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+            style={{ padding: '9px 20px', background: 'var(--accent)', border: 'none', borderRadius: 10, color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
             <Settings size={13} /> Edit Profile
           </motion.button>
         </div>
 
         <div style={{ marginBottom: 6 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-            <span style={{ fontFamily: 'Syne, sans-serif', fontSize: 22, fontWeight: 800, color: 'var(--text)' }}>{displayName}</span>
+            <span style={{ fontFamily:'var(--font-syne), sans-serif', fontSize: 22, fontWeight: 800, color: 'var(--text)' }}>{displayName}</span>
             {currentUser?.isVerified && <BadgeCheck size={18} color="var(--accent2)" fill="var(--accent2)" />}
           </div>
           <div style={{ fontSize: 14, color: 'var(--text3)', marginBottom: 10 }}>{displayHandle}</div>
@@ -691,7 +691,7 @@ export default function ProfilePage() {
         <div style={{ display: 'flex', gap: 28, margin: '18px 0 24px', paddingBottom: 20, borderBottom: '1px solid var(--border)' }}>
           {stats.map(s => (
             <div key={s.label}>
-              <div style={{ fontFamily: 'Syne, sans-serif', fontSize: 22, fontWeight: 800, color: 'var(--text)' }}>{s.value}</div>
+              <div style={{ fontFamily:'var(--font-syne), sans-serif', fontSize: 22, fontWeight: 800, color: 'var(--text)' }}>{s.value}</div>
               <div style={{ fontSize: 12, color: 'var(--text3)' }}>{s.label}</div>
             </div>
           ))}
@@ -702,7 +702,7 @@ export default function ProfilePage() {
             <button key={t} onClick={() => setTab(t)}
               style={{
                 padding: '10px 20px', background: 'none', border: 'none', fontSize: 14, fontWeight: tab === t ? 700 : 400,
-                color: tab === t ? 'var(--accent2)' : 'var(--text3)', cursor: 'pointer', fontFamily: 'DM Sans',
+                color: tab === t ? 'var(--accent2)' : 'var(--text3)', cursor: 'pointer', fontFamily:'var(--font-dm-sans)',
                 borderBottom: tab === t ? '2px solid var(--accent)' : '2px solid transparent', transition: 'all 0.2s'
               }}>
               {t === 'posts' ? 'Posts' : t === 'liked' ? 'Liked' : 'Saved'}
@@ -922,7 +922,7 @@ export default function ProfilePage() {
                 </button>
                 <button
                   onClick={handleEditPost}
-                  style={{ padding: '8px 20px', background: 'linear-gradient(135deg, var(--accent), var(--accent3))', border: 'none', borderRadius: 10, color: 'white', cursor: 'pointer' }}
+                  style={{ padding: '8px 20px', background: 'var(--accent)', border: 'none', borderRadius: 10, color: 'white', cursor: 'pointer' }}
                 >
                   Save Changes
                 </button>
@@ -945,7 +945,7 @@ export default function ProfilePage() {
               style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 20, padding: 32, width: 480, maxWidth: '95vw', boxShadow: '0 24px 64px var(--shadow)' }}>
 
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-                <h2 style={{ fontFamily: 'Syne, sans-serif', fontSize: 20, fontWeight: 800, color: 'var(--text)', margin: 0 }}>Edit Profile</h2>
+                <h2 style={{ fontFamily:'var(--font-syne), sans-serif', fontSize: 20, fontWeight: 800, color: 'var(--text)', margin: 0 }}>Edit Profile</h2>
                 <button onClick={() => setEditOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer' }}><X size={18} /></button>
               </div>
 
@@ -961,7 +961,7 @@ export default function ProfilePage() {
 
               <label style={{ fontSize: 13, fontWeight: 500, color: 'var(--text2)', display: 'block', marginBottom: 6 }}>Bio</label>
               <textarea value={bio} onChange={e => setBio(e.target.value)} rows={3}
-                style={{ width: '100%', background: 'var(--bg3)', border: '1.5px solid var(--border)', borderRadius: 10, padding: '10px 14px', color: 'var(--text)', fontSize: 14, outline: 'none', resize: 'vertical', fontFamily: 'DM Sans', lineHeight: 1.6, marginBottom: 24, boxSizing: 'border-box' }}
+                style={{ width: '100%', background: 'var(--bg3)', border: '1.5px solid var(--border)', borderRadius: 10, padding: '10px 14px', color: 'var(--text)', fontSize: 14, outline: 'none', resize: 'vertical', fontFamily:'var(--font-dm-sans)', lineHeight: 1.6, marginBottom: 24, boxSizing: 'border-box' }}
                 onFocus={e => (e.target.style.borderColor = 'var(--accent)')} onBlur={e => (e.target.style.borderColor = 'var(--border)')} />
 
               {saveMsg && (
@@ -977,7 +977,7 @@ export default function ProfilePage() {
                 <button onClick={() => setEditOpen(false)} disabled={saving}
                   style={{ padding: '10px 20px', background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 10, color: 'var(--text2)', fontSize: 14, cursor: 'pointer' }}>Cancel</button>
                 <motion.button whileTap={{ scale: 0.96 }} onClick={handleSave} disabled={saving}
-                  style={{ padding: '10px 24px', background: 'linear-gradient(135deg, var(--accent), var(--accent3))', border: 'none', borderRadius: 10, color: 'white', fontSize: 14, fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 6, opacity: saving ? 0.8 : 1 }}>
+                  style={{ padding: '10px 24px', background: 'var(--accent)', border: 'none', borderRadius: 10, color: 'white', fontSize: 14, fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 6, opacity: saving ? 0.8 : 1 }}>
                   {saving ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Saving…</> : 'Save Changes'}
                 </motion.button>
               </div>

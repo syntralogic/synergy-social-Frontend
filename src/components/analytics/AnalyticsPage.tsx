@@ -91,7 +91,7 @@ export default function AnalyticsPage() {
         {/* Header */}
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:24 }}>
           <div>
-            <h1 style={{ fontFamily:'Syne, sans-serif', fontSize:26, fontWeight:800, color:'var(--text)', margin:0 }}>Analytics</h1>
+            <h1 style={{ fontFamily:'var(--font-syne), sans-serif', fontSize:26, fontWeight:800, color:'var(--text)', margin:0 }}>Analytics</h1>
             <p style={{ fontSize:13, color:'var(--text3)', marginTop:4 }}>
               Your analytics overview
             </p>
@@ -99,7 +99,7 @@ export default function AnalyticsPage() {
           <div style={{ display:'flex', gap:4, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, padding:4 }}>
             {PERIOD_OPTIONS.map((p, i) => (
               <button key={p.label} onClick={() => setPeriodIdx(i)}
-                style={{ padding:'6px 14px', borderRadius:7, border:'none', fontSize:13, fontWeight:500, cursor:'pointer', fontFamily:'DM Sans',
+                style={{ padding:'6px 14px', borderRadius:7, border:'none', fontSize:13, fontWeight:500, cursor:'pointer', fontFamily:'var(--font-dm-sans)',
                   background: periodIdx === i ? 'var(--accent)' : 'transparent',
                   color:      periodIdx === i ? 'white'        : 'var(--text3)',
                   transition:'all 0.2s',
@@ -126,7 +126,7 @@ export default function AnalyticsPage() {
                   <k.icon size={16} color={k.color}/>
                 </div>
               </div>
-              <div style={{ fontFamily:'Syne, sans-serif', fontSize:26, fontWeight:800, color:'var(--text)', marginBottom:6 }}>{k.value}</div>
+              <div style={{ fontFamily:'var(--font-syne), sans-serif', fontSize:26, fontWeight:800, color:'var(--text)', marginBottom:6 }}>{k.value}</div>
               <div style={{ display:'flex', alignItems:'center', gap:4, fontSize:12 }}>
                 {k.up ? <TrendingUp size={12} color="var(--green)"/> : <TrendingDown size={12} color="var(--red)"/>}
                 <span style={{ color: k.up ? 'var(--green)' : 'var(--red)', fontWeight:600 }}>{k.delta}</span>
@@ -142,7 +142,7 @@ export default function AnalyticsPage() {
             style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:14, padding:20 }}>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:20 }}>
               <div>
-                <h3 style={{ fontFamily:'Syne, sans-serif', fontSize:15, fontWeight:700, color:'var(--text)' }}>Follower Growth</h3>
+                <h3 style={{ fontFamily:'var(--font-syne), sans-serif', fontSize:15, fontWeight:700, color:'var(--text)' }}>Follower Growth</h3>
                 <p style={{ fontSize:12, color:'var(--text3)', marginTop:2 }}>Total followers over time</p>
               </div>
               <div style={{ display:'flex', alignItems:'center', gap:4, fontSize:12, color:'var(--green)', fontWeight:600 }}>
@@ -168,7 +168,7 @@ export default function AnalyticsPage() {
 
           <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }} transition={{ delay:0.25 }}
             style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:14, padding:20 }}>
-            <h3 style={{ fontFamily:'Syne, sans-serif', fontSize:15, fontWeight:700, color:'var(--text)', marginBottom:4 }}>Traffic Sources</h3>
+            <h3 style={{ fontFamily:'var(--font-syne), sans-serif', fontSize:15, fontWeight:700, color:'var(--text)', marginBottom:4 }}>Traffic Sources</h3>
             <p style={{ fontSize:12, color:'var(--text3)', marginBottom:14 }}>Where your followers come from</p>
             <ResponsiveContainer width="100%" height={140}>
               <PieChart>
@@ -194,7 +194,7 @@ export default function AnalyticsPage() {
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:16 }}>
           <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }} transition={{ delay:0.3 }}
             style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:14, padding:20 }}>
-            <h3 style={{ fontFamily:'Syne, sans-serif', fontSize:15, fontWeight:700, color:'var(--text)', marginBottom:4 }}>Engagement Rate</h3>
+            <h3 style={{ fontFamily:'var(--font-syne), sans-serif', fontSize:15, fontWeight:700, color:'var(--text)', marginBottom:4 }}>Engagement Rate</h3>
             <p style={{ fontSize:12, color:'var(--text3)', marginBottom:16 }}>Weekly engagement %</p>
             <ResponsiveContainer width="100%" height={160}>
               <LineChart data={engagementData}>
@@ -209,7 +209,7 @@ export default function AnalyticsPage() {
 
           <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }} transition={{ delay:0.35 }}
             style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:14, padding:20 }}>
-            <h3 style={{ fontFamily:'Syne, sans-serif', fontSize:15, fontWeight:700, color:'var(--text)', marginBottom:4 }}>Posts Per Week</h3>
+            <h3 style={{ fontFamily:'var(--font-syne), sans-serif', fontSize:15, fontWeight:700, color:'var(--text)', marginBottom:4 }}>Posts Per Week</h3>
             <p style={{ fontSize:12, color:'var(--text3)', marginBottom:16 }}>Publishing frequency</p>
             <ResponsiveContainer width="100%" height={160}>
               <BarChart data={postData} barSize={20}>
@@ -228,10 +228,10 @@ export default function AnalyticsPage() {
           style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:14, padding:20, marginBottom:16 }}>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:18 }}>
             <div>
-              <h3 style={{ fontFamily:'Syne, sans-serif', fontSize:15, fontWeight:700, color:'var(--text)' }}>Top Performing Posts</h3>
+              <h3 style={{ fontFamily:'var(--font-syne), sans-serif', fontSize:15, fontWeight:700, color:'var(--text)' }}>Top Performing Posts</h3>
               <p style={{ fontSize:12, color:'var(--text3)', marginTop:2 }}>Your best content this period</p>
             </div>
-            <button style={{ background:'none', border:'1px solid var(--border)', borderRadius:8, padding:'6px 12px', color:'var(--text2)', fontSize:12, cursor:'pointer', fontFamily:'DM Sans', display:'flex', alignItems:'center', gap:5 }}>
+            <button style={{ background:'none', border:'1px solid var(--border)', borderRadius:8, padding:'6px 12px', color:'var(--text2)', fontSize:12, cursor:'pointer', fontFamily:'var(--font-dm-sans)', display:'flex', alignItems:'center', gap:5 }}>
               View All <ArrowUpRight size={12}/>
             </button>
           </div>
@@ -269,11 +269,11 @@ export default function AnalyticsPage() {
         {/* Top creators */}
         <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }} transition={{ delay:0.45 }}
           style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:14, padding:20, marginBottom:32 }}>
-          <h3 style={{ fontFamily:'Syne, sans-serif', fontSize:15, fontWeight:700, color:'var(--text)', marginBottom:16 }}>Top Creators to Watch</h3>
+          <h3 style={{ fontFamily:'var(--font-syne), sans-serif', fontSize:15, fontWeight:700, color:'var(--text)', marginBottom:16 }}>Top Creators to Watch</h3>
           <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(180px, 1fr))', gap:12 }}>
             {USERS.slice(0,4).map(u => (
               <div key={u.id} style={{ background:'var(--bg3)', borderRadius:12, padding:'16px 14px', textAlign:'center' }}>
-                <div style={{ width:44, height:44, borderRadius:'50%', background:u.color, color:'white', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16, fontFamily:'Syne', fontWeight:700, margin:'0 auto 10px' }}>{u.initials}</div>
+                <div style={{ width:44, height:44, borderRadius:'50%', background:u.color, color:'white', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16, fontFamily:'var(--font-syne)', fontWeight:700, margin:'0 auto 10px' }}>{u.initials}</div>
                 <div style={{ fontSize:13, fontWeight:600, color:'var(--text)', marginBottom:2 }}>{u.name}</div>
                 <div style={{ fontSize:11, color:'var(--text3)', marginBottom:10 }}>{u.handle}</div>
                 <div style={{ fontSize:13, fontWeight:700, color:'var(--accent2)' }}>{fmtNum(u.followers||0)}</div>

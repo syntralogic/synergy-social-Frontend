@@ -114,7 +114,7 @@ export default function PostDetailPage() {
             onClick={() => router.push('/')}
             style={{
               padding: '10px 24px',
-              background: 'linear-gradient(135deg, var(--accent), var(--accent3))',
+              background: 'var(--accent)',
               border: 'none',
               borderRadius: 10,
               color: 'white',
@@ -153,7 +153,7 @@ export default function PostDetailPage() {
             cursor: 'pointer',
             padding: '10px 0',
             marginBottom: 16,
-            fontFamily: 'DM Sans, sans-serif'
+            fontFamily:'var(--font-dm-sans), sans-serif'
           }}
           whileHover={{ x: -5 }}
         >
@@ -193,7 +193,7 @@ export default function PostDetailPage() {
             fontWeight: 600, 
             color: 'var(--text)',
             marginBottom: 16,
-            fontFamily: 'DM Sans, sans-serif'
+            fontFamily:'var(--font-dm-sans), sans-serif'
           }}>
             Comments ({post._count.comments})
           </h3>

@@ -96,7 +96,7 @@ export default function NotificationsPage() {
         {/* Header */}
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:24 }}>
           <div>
-            <h1 style={{ fontFamily:'Syne, sans-serif', fontSize:22, fontWeight:800, color:'var(--text)' }}>Notifications</h1>
+            <h1 style={{ fontFamily:'var(--font-syne), sans-serif', fontSize:22, fontWeight:800, color:'var(--text)' }}>Notifications</h1>
             {unread.length > 0 && <p style={{ fontSize:13, color:'var(--text3)', marginTop:2 }}>{unread.length} unread</p>}
           </div>
           <div style={{ display:'flex', gap:8 }}>
@@ -106,7 +106,7 @@ export default function NotificationsPage() {
             </motion.button>
             {unread.length > 0 && (
               <motion.button whileHover={{ scale:1.03 }} whileTap={{ scale:0.96 }} onClick={handleMarkAll} disabled={markingAll}
-                style={{ display:'flex', alignItems:'center', gap:6, padding:'8px 16px', background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, color:'var(--text2)', fontSize:13, cursor:'pointer', fontFamily:'DM Sans', opacity: markingAll ? 0.6 : 1 }}>
+                style={{ display:'flex', alignItems:'center', gap:6, padding:'8px 16px', background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, color:'var(--text2)', fontSize:13, cursor:'pointer', fontFamily:'var(--font-dm-sans)', opacity: markingAll ? 0.6 : 1 }}>
                 <CheckCheck size={14}/> Mark all read
               </motion.button>
             )}

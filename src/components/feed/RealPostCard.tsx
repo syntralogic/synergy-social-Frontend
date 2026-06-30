@@ -323,7 +323,7 @@ export default function RealPostCard({
               width: 38,
               height: 38,
               borderRadius: '50%',
-              background: 'linear-gradient(135deg, var(--accent), var(--pink))',
+              background: 'var(--accent)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -344,7 +344,7 @@ export default function RealPostCard({
                 fontSize: 14,
                 fontWeight: 600,
                 color: 'var(--text)',
-                fontFamily: 'DM Sans, sans-serif'
+                fontFamily:'var(--font-dm-sans), sans-serif'
               }}
             >
               {authorFullName}
@@ -369,7 +369,7 @@ export default function RealPostCard({
               fontSize: 11,
               fontWeight: 600,
               cursor: followLoading ? 'default' : 'pointer',
-              fontFamily: 'DM Sans, sans-serif',
+              fontFamily:'var(--font-dm-sans), sans-serif',
               display: 'flex',
               alignItems: 'center',
               gap: 4,
@@ -504,7 +504,7 @@ export default function RealPostCard({
             fontSize: 14,
             color: 'var(--text)',
             lineHeight: 1.65,
-            fontFamily: 'DM Sans, sans-serif'
+            fontFamily:'var(--font-dm-sans), sans-serif'
           }}
         >
           {post.content}
@@ -694,7 +694,7 @@ export default function RealPostCard({
               color: 'var(--text)',
               fontSize: 14,
               outline: 'none',
-              fontFamily: 'DM Sans, sans-serif'
+              fontFamily:'var(--font-dm-sans), sans-serif'
             }}
             onFocus={e => (e.target.style.borderColor = 'var(--accent)')}
             onBlur={e => (e.target.style.borderColor = 'var(--border)')}
@@ -705,7 +705,7 @@ export default function RealPostCard({
             disabled={commenting || !comment.trim()}
             style={{
               padding: '8px 18px',
-              background: 'linear-gradient(135deg, var(--accent), var(--accent3))',
+              background: 'var(--accent)',
               border: 'none',
               borderRadius: 20,
               color: 'white',
@@ -759,7 +759,7 @@ export default function RealPostCard({
                         width: 28,
                         height: 28,
                         borderRadius: '50%',
-                        background: 'linear-gradient(135deg, var(--accent), var(--pink))',
+                        background: 'var(--accent)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -829,7 +829,7 @@ function ActionBtn({
         color: active ? activeColor : 'var(--text3)',
         fontSize: 13,
         fontWeight: 500,
-        fontFamily: 'DM Sans, sans-serif',
+        fontFamily:'var(--font-dm-sans), sans-serif',
         transition: 'all 0.2s ease'
       }}
     >
