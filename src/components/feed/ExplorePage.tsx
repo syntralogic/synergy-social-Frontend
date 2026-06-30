@@ -41,7 +41,7 @@ export default function ExplorePage() {
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [showRecentSearches, setShowRecentSearches] = useState(false);
   const [searchFilter, setSearchFilter] = useState<'all' | 'users' | 'posts'>('all');
-  const [allUsers, setAllUsers] = useState<ApiUser[]>([]); // Cache for client-side filtering
+  const [allUsers, setAllUsers] = useState<ApiUser[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -56,7 +56,7 @@ export default function ExplorePage() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Load all users for client-side filtering (faster search)
+  // Load all users for client-side filtering
   useEffect(() => {
     const loadAllUsers = async () => {
       setLoadingUsers(true);
@@ -65,7 +65,6 @@ export default function ExplorePage() {
         const cached = localStorage.getItem('cachedUsers');
         if (cached) {
           const parsed = JSON.parse(cached);
-          // Check if cache is less than 5 minutes old
           if (parsed.timestamp && Date.now() - parsed.timestamp < 300000) {
             setAllUsers(parsed.users);
             setLoadingUsers(false);
@@ -73,9 +72,25 @@ export default function ExplorePage() {
           }
         }
 
-        // Fetch users from API
-        const response = await usersAPI.getAll?.() || await searchUsers('');
-        const users = response.data || response || [];
+        // Fetch users - try different methods
+        let users: ApiUser[] = [];
+        
+        try {
+          // Try to get all users if the method exists
+          if (usersAPI.getAll) {
+            const response = await usersAPI.getAll();
+            users = response.data || response || [];
+          } else {
+            // Fallback: search with empty query to get users
+            const response = await searchUsers('');
+            users = response.data || response || [];
+          }
+        } catch (error) {
+          console.log('API fetch failed, trying searchUsers with empty query');
+          const response = await searchUsers('');
+          users = response.data || response || [];
+        }
+
         setAllUsers(users);
         
         // Cache users
@@ -88,8 +103,12 @@ export default function ExplorePage() {
         // Try to use cached even if expired
         const cached = localStorage.getItem('cachedUsers');
         if (cached) {
-          const parsed = JSON.parse(cached);
-          setAllUsers(parsed.users);
+          try {
+            const parsed = JSON.parse(cached);
+            setAllUsers(parsed.users);
+          } catch (e) {
+            console.error('Failed to parse cached users:', e);
+          }
         }
       } finally {
         setLoadingUsers(false);
@@ -135,23 +154,19 @@ export default function ExplorePage() {
     
     try {
       let results: ApiUser[] = [];
-
-      // First try client-side search (faster)
       const lowerQuery = searchTerm.toLowerCase().trim();
-      
+
+      // Client-side filtering if we have users loaded
       if (allUsers.length > 0) {
-        // Client-side filtering - matches partial names and usernames
         results = allUsers.filter(user => {
           const fullNameMatch = user.fullName?.toLowerCase().includes(lowerQuery) || false;
           const usernameMatch = user.username?.toLowerCase().includes(lowerQuery) || false;
           const bioMatch = user.bio?.toLowerCase().includes(lowerQuery) || false;
           
-          // For partial matching, we want to match any part of the name/username
-          // This allows "joh" to match "John Doe" or "johndoe"
           return fullNameMatch || usernameMatch || bioMatch;
         });
 
-        // Sort results by relevance (exact matches first)
+        // Sort by relevance
         results.sort((a, b) => {
           const aExact = a.username?.toLowerCase() === lowerQuery || a.fullName?.toLowerCase() === lowerQuery;
           const bExact = b.username?.toLowerCase() === lowerQuery || b.fullName?.toLowerCase() === lowerQuery;
@@ -166,18 +181,17 @@ export default function ExplorePage() {
           return 0;
         });
 
-        // Limit results to top 20 for performance
         results = results.slice(0, 20);
       }
 
-      // If no results from client-side, try API search
+      // If no results from client-side or allUsers is empty, try API
       if (results.length === 0 && searchTerm.length >= 2) {
         try {
-          const apiResults = await searchUsers(searchTerm);
-          const apiUsers = apiResults.data || apiResults || [];
-          results = apiUsers.slice(0, 20);
+          const response = await searchUsers(searchTerm);
+          const apiUsers = response.data || response || [];
+          results = Array.isArray(apiUsers) ? apiUsers.slice(0, 20) : [];
         } catch (error) {
-          console.log('API search failed, using client results:', error);
+          console.log('API search failed:', error);
         }
       }
 
@@ -203,7 +217,7 @@ export default function ExplorePage() {
       } else {
         setSearchResults([]);
       }
-    }, 200); // Reduced debounce for faster response
+    }, 200);
 
     return () => clearTimeout(t);
   }, [query, performSearch]);
@@ -349,9 +363,8 @@ export default function ExplorePage() {
           padding: '4px 4px 4px 16px',
           transition: 'border-color 0.2s, box-shadow 0.2s',
           alignItems: 'center',
-          boxShadow: query ? '0 0 0 3px rgba(var(--accent-rgb, 99, 102, 241), 0.1)' : 'none'
-        }}
-        >
+          boxShadow: query ? '0 0 0 3px rgba(99, 102, 241, 0.1)' : 'none'
+        }}>
           <Search size={18} style={{ color: 'var(--text3)', flexShrink: 0 }} />
           
           <input
