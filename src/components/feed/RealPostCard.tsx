@@ -24,6 +24,7 @@ interface Props {
   onPostDelete?: (postId: string) => void;
   onShare?: (postId: string) => void;
   showComments?: boolean;
+  onMessage?: (userId: string) => void; // Added this prop
 }
 
 function timeAgo(dateStr: string) {
@@ -65,12 +66,15 @@ export default function RealPostCard({
   onCommentAdded, 
   onPostDelete, 
   onShare,
-  showComments = false
+  showComments = false,
+  onMessage
 }: Props) {
-  const { following, toggleFollow, currentUser } = useStore(s => ({ 
+  const { following, toggleFollow, currentUser, setPage, setMessageUserId } = useStore(s => ({ 
     following: s.following, 
     toggleFollow: s.toggleFollow,
-    currentUser: s.currentUser
+    currentUser: s.currentUser,
+    setPage: s.setPage,
+    setMessageUserId: s.setMessageUserId
   }));
   
   const [likeAnim, setLikeAnim] = useState(false);
@@ -284,6 +288,17 @@ export default function RealPostCard({
     }
   }
 
+  // Handle message button click
+  const handleMessageClick = () => {
+    if (onMessage) {
+      onMessage(authorId);
+    } else {
+      // Default behavior - navigate to messages
+      setMessageUserId(authorId);
+      setPage('messages');
+    }
+  };
+
   const handleVideoLoad = () => setMediaLoading(false);
   const handleVideoError = () => { setMediaError(true); setMediaLoading(false); };
   const handleImageLoad = () => setMediaLoading(false);
@@ -390,7 +405,35 @@ export default function RealPostCard({
           </motion.button>
         )}
 
-        {/* More menu — only on your own posts (Delete Post is the only action here) */}
+        {/* Message Button - Show for other users' posts */}
+        {!isOwnPost && authorId && (
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={handleMessageClick}
+            style={{
+              padding: '4px 12px',
+              borderRadius: 20,
+              border: '1.5px solid var(--border)',
+              fontSize: 11,
+              fontWeight: 600,
+              cursor: 'pointer',
+              fontFamily:'var(--font-dm-sans), sans-serif',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              background: 'transparent',
+              color: 'var(--text2)',
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg3)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+          >
+            <MessageCircle size={12} /> Message
+          </motion.button>
+        )}
+
+        {/* More menu — only on your own posts */}
         {isOwnPost && (
         <div style={{ position: 'relative' }}>
           <button
