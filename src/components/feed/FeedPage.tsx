@@ -31,13 +31,17 @@ const getAvatarUrl = (avatar: string | undefined) => {
 };
 
 export default function FeedPage() {
-  const { currentUser } = useStore(s => ({ currentUser: s.currentUser }));
+  const { currentUser, setPage, setMessageUserId } = useStore(s => ({ 
+    currentUser: s.currentUser,
+    setPage: s.setPage,
+    setMessageUserId: s.setMessageUserId
+  }));
   const [posts, setPosts] = useState<ApiPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [posting, setPosting] = useState(false);
   const [newText, setNewText] = useState('');
   const [error, setError] = useState('');
-  const [page, setPage] = useState(1);
+  const [page, setPageNum] = useState(1);
   const [hasMore, setHasMore] = useState(true);
 
   // Media upload state
@@ -63,7 +67,7 @@ export default function FeedPage() {
       if (replace) setPosts(newPosts);
       else setPosts(prev => [...prev, ...newPosts]);
       setHasMore(newPosts.length === 15);
-      setPage(p);
+      setPageNum(p);
     } catch (err) {
       console.error('Error loading feed:', err);
       setError('Could not load feed. Is the backend running?');
@@ -169,6 +173,12 @@ export default function FeedPage() {
     ));
     console.log('Post shared:', postId);
   }
+
+  // Handle message button click from post card
+  const handleMessageUser = (userId: string) => {
+    setMessageUserId(userId);
+    setPage('messages');
+  };
 
   const canPost = (newText.trim() || selectedMedia || feeling) && !posting && !mediaUploading;
 
@@ -588,6 +598,7 @@ export default function FeedPage() {
                   onCommentAdded={handleCommentAdded}
                   onPostDelete={handlePostDelete}
                   onShare={handleShare}
+                  onMessage={handleMessageUser}
                 />
               </motion.div>
             ))}
