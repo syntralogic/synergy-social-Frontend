@@ -674,7 +674,7 @@ export default function ExplorePage() {
       </AnimatePresence>
 
       {/* Main content: Posts + Trending */}
-      <div style={{ maxWidth:900, margin:'0 auto', display:'grid', gridTemplateColumns:'1fr 300px', gap:24 }}>
+      <div className="explore-main-grid" style={{ maxWidth:900, margin:'0 auto', display:'grid', gridTemplateColumns:'1fr 300px', gap:24 }}>
         {/* Posts feed */}
         <div>
           <h2 style={{ 
@@ -832,9 +832,15 @@ export default function ExplorePage() {
           to { transform:rotate(360deg) } 
         }
         @media (max-width:768px) {
-          div[style*="grid-template-columns: 1fr 300px"] {
+          .explore-main-grid {
             grid-template-columns: 1fr !important;
           }
+          .explore-main-grid > div:last-child {
+            display: none !important;
+          }
+        }
+        @media (max-width: 480px) {
+          .explore-main-grid { padding: 0 !important; }
         }
         /* Smooth scrollbar */
         ::-webkit-scrollbar {

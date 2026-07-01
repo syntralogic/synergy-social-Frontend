@@ -213,7 +213,7 @@ export default function MessagesPage() {
     <div style={{ display:'flex', height:'100%', overflow:'hidden' }}>
       {/* Conversation list */}
       <div style={{ width:300, flexShrink:0, borderRight:'1px solid var(--border)', display: mobileView ? 'none' : 'flex', flexDirection:'column', height:'100%', background:'var(--bg2)' }}
-        className="conv-list">
+        className={`conv-list${mobileView ? ' mobile-hidden' : ''}`} id="convList">
         <div style={{ padding:'16px 16px 12px', borderBottom:'1px solid var(--border)' }}>
           <h2 style={{ fontFamily:'var(--font-syne), sans-serif', fontSize:18, fontWeight:800, color:'var(--text)', marginBottom:12 }}>Messages</h2>
           <div style={{ position:'relative' }}>
@@ -282,7 +282,7 @@ export default function MessagesPage() {
       </div>
 
       {/* Chat window */}
-      <div style={{ flex:1, display:'flex', flexDirection:'column', height:'100%', background:'var(--bg)' }}>
+      <div className={`chat-window${mobileView ? ' mobile-active' : ''}`} style={{ flex:1, display:'flex', flexDirection:'column', height:'100%', background:'var(--bg)' }}>
         {activeConv ? (() => {
           const other = getOtherParticipant(activeConv);
           if (!other) return null;
@@ -403,8 +403,13 @@ export default function MessagesPage() {
 
       <style>{`
         @media (max-width: 768px) {
-          .conv-list { display: flex !important; position: absolute; width: 100%; z-index: 10; }
+          .conv-list { width: 100% !important; flex-shrink: 0; }
+          .chat-window { display: none !important; }
           .mobile-back { display: flex !important; }
+        }
+        @media (max-width: 768px) {
+          .conv-list.mobile-hidden { display: none !important; }
+          .chat-window.mobile-active { display: flex !important; width: 100% !important; }
         }
       `}</style>
     </div>

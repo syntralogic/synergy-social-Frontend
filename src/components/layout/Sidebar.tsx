@@ -31,24 +31,34 @@ export default function Sidebar({ mobile=false }: { mobile?: boolean }) {
   if (mobile) {
     return (
       <div style={{ display:'flex', justifyContent:'space-around', alignItems:'center', padding:'8px 0', background:'var(--bg2)', borderTop:'1px solid var(--border)', position:'fixed', bottom:0, left:0, right:0, zIndex:100 }}>
-        {NAV.slice(0,5).map(item => {
+        {NAV.slice(0,4).map(item => {
           const Icon   = item.icon;
           const active = page === item.id;
           const badge  = item.id === 'notifications' ? unreadNotifs : 0;
           return (
             <button key={item.id} onClick={() => setPage(item.id as Page)}
-              style={{ background:'none', border:'none', display:'flex', flexDirection:'column', alignItems:'center', gap:3, padding:'6px 14px', cursor:'pointer', position:'relative' }}>
+              style={{ background:'none', border:'none', display:'flex', flexDirection:'column', alignItems:'center', gap:3, padding:'6px 10px', cursor:'pointer', position:'relative' }}>
               <div style={{ color: active ? 'var(--accent)' : 'var(--text3)', transition:'color 0.2s' }}>
                 <Icon size={22} strokeWidth={active ? 2.5 : 1.8}/>
               </div>
               {badge > 0 && (
-                <div style={{ position:'absolute', top:2, right:8, minWidth:16, height:16, background:'var(--red)', borderRadius:8, fontSize:10, color:'white', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:700, padding:'0 3px' }}>
+                <div style={{ position:'absolute', top:2, right:6, minWidth:16, height:16, background:'var(--red)', borderRadius:8, fontSize:10, color:'white', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:700, padding:'0 3px' }}>
                   {badge > 99 ? '99+' : badge}
                 </div>
               )}
             </button>
           );
         })}
+        {/* Dark mode toggle */}
+        <button onClick={toggleTheme}
+          style={{ background:'none', border:'none', display:'flex', flexDirection:'column', alignItems:'center', gap:3, padding:'6px 10px', cursor:'pointer', color:'var(--text3)' }}>
+          {theme === 'dark' ? <Sun size={22} strokeWidth={1.8}/> : <Moon size={22} strokeWidth={1.8}/>}
+        </button>
+        {/* Logout */}
+        <button onClick={logout}
+          style={{ background:'none', border:'none', display:'flex', flexDirection:'column', alignItems:'center', gap:3, padding:'6px 10px', cursor:'pointer', color:'var(--text3)' }}>
+          <LogOut size={22} strokeWidth={1.8}/>
+        </button>
       </div>
     );
   }
