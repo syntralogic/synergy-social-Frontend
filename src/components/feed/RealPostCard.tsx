@@ -321,6 +321,8 @@ export default function RealPostCard({
         marginBottom: 12,
         overflow: 'hidden',
         maxWidth: '100%',
+        width: '100%',
+        boxSizing: 'border-box',
       }}
     >
       {/* Header with Follow Button */}

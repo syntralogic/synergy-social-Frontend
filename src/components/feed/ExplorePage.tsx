@@ -676,7 +676,7 @@ export default function ExplorePage() {
       {/* Main content: Posts + Trending */}
       <div className="explore-main-grid" style={{ maxWidth:900, margin:'0 auto', display:'grid', gridTemplateColumns:'1fr 300px', gap:24 }}>
         {/* Posts feed */}
-        <div>
+        <div style={{ minWidth: 0, overflow: 'hidden' }}>
           <h2 style={{ 
             fontFamily:'var(--font-syne), sans-serif', 
             fontSize:16, 
