@@ -123,12 +123,13 @@ export default function Sidebar({ mobile=false }: { mobile?: boolean }) {
 
       {/* Bottom */}
       <div style={{ padding:'12px 10px', borderTop:'1px solid var(--border)' }}>
+        {showSettings && <ProfileSettingsSheet onClose={() => setShowSettings(false)} />}
         <button onClick={toggleTheme} style={{ width:'100%', display:'flex', alignItems:'center', gap:12, padding:'9px 14px', borderRadius:10, border:'none', cursor:'pointer', marginBottom:4, background:'transparent', color:'var(--text2)', fontFamily:'var(--font-dm-sans), sans-serif', fontSize:13, textAlign:'left' }}>
           {theme==='dark' ? <Sun size={16}/> : <Moon size={16}/>}
           {theme==='dark' ? 'Light Mode' : 'Dark Mode'}
         </button>
 
-        <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 14px', borderRadius:12, background:'var(--bg3)', marginTop:4 }}>
+        <button onClick={() => setShowSettings(true)} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'10px 14px', borderRadius:12, background:'var(--bg3)', marginTop:4, border:'none', cursor:'pointer', textAlign:'left' }}>
           {currentUser?.avatar ? (
             <img src={currentUser.avatar} alt={displayName} style={{ width:32, height:32, borderRadius:'50%', objectFit:'cover' }}/>
           ) : (
@@ -140,10 +141,8 @@ export default function Sidebar({ mobile=false }: { mobile?: boolean }) {
             <div style={{ fontSize:13, fontWeight:600, color:'var(--text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', fontFamily:'var(--font-dm-sans), sans-serif' }}>{displayName}</div>
             <div style={{ fontSize:11, color:'var(--text3)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{displayHandle}</div>
           </div>
-          <button onClick={logout} title="Logout" style={{ background:'none', border:'none', color:'var(--text3)', cursor:'pointer', padding:4, flexShrink:0 }}>
-            <LogOut size={15}/>
-          </button>
-        </div>
+          <UserCircle size={15} color="var(--text3)" style={{ flexShrink:0 }}/>
+        </button>
       </div>
     </div>
   );

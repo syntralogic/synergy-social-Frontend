@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapPin, Link2, Calendar, BadgeCheck, Grid3X3, Heart, MessageCircle, Settings, Camera, Loader2, CheckCircle, X, Bookmark, Trash2, Edit3 } from 'lucide-react';
+import { MapPin, Link2, Calendar, BadgeCheck, Grid3X3, Heart, MessageCircle, Settings, Camera, Loader2, CheckCircle, X, Bookmark, Trash2, Edit3, UserMinus, UserPlus } from 'lucide-react';
 import { fmtNum } from '@/lib/data';
 import { usersAPI, postsAPI, apiFetch } from '@/lib/api';
 import { useStore } from '@/store/useStore';
@@ -31,6 +31,9 @@ const getImageUrl = (url: string | undefined) => {
 export default function ProfilePage() {
   const [tab, setTab] = useState<'posts'|'liked'|'saved'>('posts');
   const [editOpen, setEditOpen] = useState(false);
+  const [followModal, setFollowModal] = useState<'followers'|'following'|null>(null);
+  const [followList, setFollowList] = useState<any[]>([]);
+  const [followListLoading, setFollowListLoading] = useState(false);
   const [myPosts, setMyPosts] = useState<ApiPost[]>([]);
   const [likedPosts, setLikedPosts] = useState<ApiPost[]>([]);
   const [loadingPosts, setLoadingPosts] = useState(false);
@@ -42,7 +45,7 @@ export default function ProfilePage() {
   const [coverError, setCoverError] = useState(false);
   const [avatarError, setAvatarError] = useState(false);
 
-  const { currentUser, setUser } = useStore(s => ({ currentUser: s.currentUser, setUser: s.setUser }));
+  const { currentUser, setUser, followingMap, toggleFollow, setFollowing } = useStore(s => ({ currentUser: s.currentUser, setUser: s.setUser, followingMap: s.following, toggleFollow: s.toggleFollow, setFollowing: s.setFollowing }));
 
   const [name, setName] = useState(currentUser?.fullName || '');
   const [bio, setBio] = useState(currentUser?.bio || '');
@@ -162,6 +165,26 @@ export default function ProfilePage() {
   };
 
   // Upload cover image - NO ALERT
+  const openFollowModal = async (type: 'followers'|'following') => {
+    if (!currentUser?.id) return;
+    setFollowModal(type);
+    setFollowListLoading(true);
+    try {
+      const res: any = type === 'followers'
+        ? await apiFetch(`/users/${currentUser.id}/followers`)
+        : await usersAPI.getFollowing(currentUser.id);
+      setFollowList(res.data || []);
+    } catch { setFollowList([]); }
+    finally { setFollowListLoading(false); }
+  };
+
+  const handleUnfollow = async (userId: string) => {
+    toggleFollow(userId);
+    try { await usersAPI.unfollow(userId); }
+    catch { toggleFollow(userId); }
+    setFollowList(prev => prev.map(u => u.id === userId ? { ...u, _unfollowed: !u._unfollowed } : u));
+  };
+
   const uploadCoverImage = async (file: File) => {
     if (!file) return;
     
@@ -541,6 +564,53 @@ export default function ProfilePage() {
 
   return (
     <div style={{ height: '100%', overflowY: 'auto' }}>
+
+      {/* Followers / Following Modal */}
+      <AnimatePresence>
+        {followModal && (
+          <>
+            <motion.div key="fbdrop" initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }}
+              onClick={() => setFollowModal(null)}
+              style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:300 }} />
+            <motion.div key="fmodal" initial={{ opacity:0, scale:0.95 }} animate={{ opacity:1, scale:1 }} exit={{ opacity:0, scale:0.95 }}
+              style={{ position:'fixed', top:'50%', left:'50%', transform:'translate(-50%,-50%)', zIndex:301,
+                background:'var(--bg2)', borderRadius:20, width:'min(420px, 92vw)', maxHeight:'70vh',
+                display:'flex', flexDirection:'column', overflow:'hidden', boxShadow:'0 20px 60px rgba(0,0,0,.4)' }}>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'18px 20px', borderBottom:'1px solid var(--border)' }}>
+                <span style={{ fontFamily:'var(--font-syne), sans-serif', fontWeight:700, fontSize:17, color:'var(--text)', textTransform:'capitalize' }}>{followModal}</span>
+                <button onClick={() => setFollowModal(null)} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--text3)' }}><X size={20}/></button>
+              </div>
+              <div style={{ overflowY:'auto', flex:1 }}>
+                {followListLoading ? (
+                  <div style={{ display:'flex', justifyContent:'center', padding:40 }}><Loader2 size={24} color="var(--accent)" style={{ animation:'spin 0.8s linear infinite' }}/></div>
+                ) : followList.length === 0 ? (
+                  <div style={{ textAlign:'center', padding:40, color:'var(--text3)', fontSize:14 }}>No {followModal} yet</div>
+                ) : followList.map((u: any) => {
+                  const isFollowing = followingMap[String(u.id)] && !u._unfollowed;
+                  const uInitials = (u.fullName||'U').split(' ').map((w:string)=>w[0]).join('').slice(0,2).toUpperCase();
+                  return (
+                    <div key={u.id} style={{ display:'flex', alignItems:'center', gap:12, padding:'12px 20px', borderBottom:'1px solid var(--border)' }}>
+                      {u.avatar
+                        ? <img src={u.avatar} alt="" style={{ width:44, height:44, borderRadius:'50%', objectFit:'cover' }}/>
+                        : <div style={{ width:44, height:44, borderRadius:'50%', background:'var(--accent)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, fontWeight:700, color:'white', flexShrink:0 }}>{uInitials}</div>}
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <div style={{ fontWeight:600, fontSize:14, color:'var(--text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{u.fullName}</div>
+                        <div style={{ fontSize:12, color:'var(--text3)' }}>@{u.username}</div>
+                      </div>
+                      {u.id !== currentUser?.id && (
+                        <button onClick={() => handleUnfollow(u.id)}
+                          style={{ display:'flex', alignItems:'center', gap:5, padding:'6px 12px', borderRadius:20, border:'1.5px solid var(--border2)', background:'transparent', cursor:'pointer', fontSize:12, fontWeight:600, color: isFollowing ? 'var(--text2)' : 'var(--accent)', whiteSpace:'nowrap' }}>
+                          {isFollowing ? <><UserMinus size={13}/> Unfollow</> : <><UserPlus size={13}/> Follow</>}
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
       {/* Banner / Cover */}
       <div style={{ position: 'relative', height: 180, background: coverBg, backgroundSize: 'cover', backgroundPosition: 'center', overflow: 'hidden' }}>
         {(!coverImageUrl || coverError) && (
@@ -690,9 +760,11 @@ export default function ProfilePage() {
 
         <div style={{ display: 'flex', gap: 28, margin: '18px 0 24px', paddingBottom: 20, borderBottom: '1px solid var(--border)' }}>
           {stats.map(s => (
-            <div key={s.label}>
+            <div key={s.label}
+              onClick={() => (s.label === 'Followers' || s.label === 'Following') ? openFollowModal(s.label.toLowerCase() as 'followers'|'following') : undefined}
+              style={{ cursor: (s.label === 'Followers' || s.label === 'Following') ? 'pointer' : 'default' }}>
               <div style={{ fontFamily:'var(--font-syne), sans-serif', fontSize: 22, fontWeight: 800, color: 'var(--text)' }}>{s.value}</div>
-              <div style={{ fontSize: 12, color: 'var(--text3)' }}>{s.label}</div>
+              <div style={{ fontSize: 12, color: (s.label === 'Followers' || s.label === 'Following') ? 'var(--accent)' : 'var(--text3)' }}>{s.label}</div>
             </div>
           ))}
         </div>

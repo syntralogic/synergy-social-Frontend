@@ -9,7 +9,7 @@ import {
 } from 'recharts';
 import { analyticsAPI } from '@/lib/api';
 import { useStore } from '@/store/useStore';
-import { ANALYTICS, TOP_POSTS, USERS, fmtNum } from '@/lib/data';
+import { TOP_POSTS, USERS, fmtNum } from '@/lib/data';
 
 const PERIOD_OPTIONS: Array<{ label: string; range: string }> = [
   { label:'7D',  range:'week'  },
@@ -51,32 +51,38 @@ export default function AnalyticsPage() {
   const summary = apiData?.summary;
   const timeline: any[] = apiData?.timeline || [];
 
-  // Build chart data from timeline or demo fallback
+  // Build chart data from real timeline — show 7 empty days if no data yet
+  const emptyWeek = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(); d.setDate(d.getDate() - (6 - i));
+    return { name: d.toLocaleDateString('en', { month:'short', day:'numeric' }), value: 0 };
+  });
+
   const followerData   = timeline.length
     ? timeline.map((d: any) => ({ name: new Date(d.date).toLocaleDateString('en', { month:'short', day:'numeric' }), value: d.followersGained || 0 }))
-    : ANALYTICS.weeks.map((w, i) => ({ name: w, value: ANALYTICS.followers[i] }));
+    : emptyWeek;
 
   const engagementData = timeline.length
     ? timeline.map((d: any) => ({ name: new Date(d.date).toLocaleDateString('en', { month:'short', day:'numeric' }), value: d.engagementRate || 0 }))
-    : ANALYTICS.weeks.map((w, i) => ({ name: w, value: ANALYTICS.engagement[i] }));
+    : emptyWeek;
 
   const reachData = timeline.length
     ? timeline.map((d: any) => ({ name: new Date(d.date).toLocaleDateString('en', { month:'short', day:'numeric' }), value: d.reach || 0 }))
-    : ANALYTICS.weeks.map((w, i) => ({ name: w, value: ANALYTICS.reach[i] }));
+    : emptyWeek;
 
   const postData = timeline.length
     ? timeline.map((d: any) => ({ name: new Date(d.date).toLocaleDateString('en', { month:'short', day:'numeric' }), value: d.postsPublished || 0 }))
-    : ANALYTICS.weeks.map((w, i) => ({ name: w, value: ANALYTICS.posts[i] }));
+    : emptyWeek;
 
   const followersVal = summary?.followersCount ?? (currentUser as any)?.followersCount ?? 0;
   const postsVal     = summary?.postsCount     ?? (currentUser as any)?.postsCount     ?? 0;
   const likesVal     = summary?.totalLikesReceived ?? 0;
+  const engagementRate = followersVal > 0 ? ((likesVal / followersVal) * 100).toFixed(1) + '%' : '0%';
 
   const kpis = [
-    { label:'Total Followers',  value: fmtNum(followersVal),  delta:'+18.2%', up:true,  icon:Users,     color:'var(--accent)' },
-    { label:'Engagement Rate',  value: summary ? ((likesVal/(followersVal||1))*100).toFixed(1)+'%' : '—', delta:'+1.2%', up:true, icon:Heart, color:'var(--pink)' },
-    { label:'Total Likes',      value: fmtNum(likesVal),      delta:'+34%',   up:true,  icon:Eye,       color:'var(--cyan)'   },
-    { label:'Total Posts',      value: fmtNum(postsVal),      delta:'+32%',   up:true,  icon:BarChart2, color:'var(--amber)'  },
+    { label:'Total Followers',  value: fmtNum(followersVal),  delta: summary ? null : null, up:true,  icon:Users,     color:'var(--accent)' },
+    { label:'Engagement Rate',  value: engagementRate,        delta: null, up:true, icon:Heart, color:'var(--pink)' },
+    { label:'Total Likes',      value: fmtNum(likesVal),      delta: null, up:true, icon:Eye,   color:'var(--cyan)'  },
+    { label:'Total Posts',      value: fmtNum(postsVal),      delta: null, up:true, icon:BarChart2, color:'var(--amber)' },
   ];
 
   const tooltipStyle = {
@@ -129,7 +135,7 @@ export default function AnalyticsPage() {
               <div style={{ fontFamily:'var(--font-syne), sans-serif', fontSize:26, fontWeight:800, color:'var(--text)', marginBottom:6 }}>{k.value}</div>
               <div style={{ display:'flex', alignItems:'center', gap:4, fontSize:12 }}>
                 {k.up ? <TrendingUp size={12} color="var(--green)"/> : <TrendingDown size={12} color="var(--red)"/>}
-                <span style={{ color: k.up ? 'var(--green)' : 'var(--red)', fontWeight:600 }}>{k.delta}</span>
+                {k.delta && <span style={{ color: k.up ? 'var(--green)' : 'var(--red)', fontWeight:600 }}>{k.delta}</span>}
                 <span style={{ color:'var(--text3)' }}>vs last period</span>
               </div>
             </motion.div>
