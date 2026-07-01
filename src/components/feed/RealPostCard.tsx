@@ -24,7 +24,8 @@ interface Props {
   onPostDelete?: (postId: string) => void;
   onShare?: (postId: string) => void;
   showComments?: boolean;
-  onMessage?: (userId: string) => void; // Added this prop
+  onMessage?: (userId: string) => void;
+  showMessage?: boolean; // false = hide Message button (e.g. on feed/home page)
 }
 
 function timeAgo(dateStr: string) {
@@ -67,7 +68,8 @@ export default function RealPostCard({
   onPostDelete, 
   onShare,
   showComments = false,
-  onMessage
+  onMessage,
+  showMessage = true
 }: Props) {
   const { following, toggleFollow, currentUser, setPage, setMessageUserId } = useStore(s => ({ 
     following: s.following, 
@@ -321,7 +323,7 @@ export default function RealPostCard({
       }}
     >
       {/* Header with Follow Button */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px', overflow: 'hidden' }}>
         {/* Avatar */}
         {authorAvatar ? (
           <img
@@ -352,20 +354,23 @@ export default function RealPostCard({
           </div>
         )}
         
-        <div style={{ flex: 1 }}>
+        <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
             <span
               style={{
                 fontSize: 14,
                 fontWeight: 600,
                 color: 'var(--text)',
-                fontFamily:'var(--font-dm-sans), sans-serif'
+                fontFamily:'var(--font-dm-sans), sans-serif',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
               }}
             >
               {authorFullName}
             </span>
           </div>
-          <div style={{ fontSize: 12, color: 'var(--text3)' }}>
+          <div style={{ fontSize: 12, color: 'var(--text3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             @{authorUsername} · {timeAgo(post.createdAt)}
           </div>
         </div>
@@ -378,7 +383,7 @@ export default function RealPostCard({
             onClick={handleFollow}
             disabled={followLoading}
             style={{
-              padding: '4px 14px',
+              padding: '4px 10px',
               borderRadius: 20,
               border: '1.5px solid',
               fontSize: 11,
@@ -388,6 +393,7 @@ export default function RealPostCard({
               display: 'flex',
               alignItems: 'center',
               gap: 4,
+              flexShrink: 0,
               borderColor: localFollowState ? 'var(--border2)' : 'var(--accent)',
               background: localFollowState ? 'transparent' : 'var(--accent)',
               color: localFollowState ? 'var(--text2)' : 'white',
@@ -405,8 +411,8 @@ export default function RealPostCard({
           </motion.button>
         )}
 
-        {/* Message Button - Show for other users' posts */}
-        {!isOwnPost && authorId && (
+        {/* Message Button - Show for other users' posts, only when showMessage=true */}
+        {showMessage && !isOwnPost && authorId && (
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}

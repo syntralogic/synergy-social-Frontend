@@ -599,6 +599,7 @@ export default function FeedPage() {
                   onPostDelete={handlePostDelete}
                   onShare={handleShare}
                   onMessage={handleMessageUser}
+                  showMessage={false}
                 />
               </motion.div>
             ))}
