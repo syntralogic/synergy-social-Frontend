@@ -123,3 +123,56 @@ input:focus-visible, textarea:focus-visible, button:focus-visible {
 .theme-transition {
   transition: background 0.2s, border-color 0.2s, color 0.2s;
 }
+
+/* ============================================================
+   SYNERGY SOCIAL — RESPONSIVE (mobile-first additions)
+   These only override layout at small breakpoints.
+   Desktop styles are unchanged.
+   ============================================================ */
+
+/* Auth page */
+@media (max-width: 500px) {
+  /* AuthPage card is already max-width: 420 with padding,
+     so just ensure it doesn't overflow */
+  body { overflow-x: hidden; }
+}
+
+/* Feed — post composer & cards already use maxWidth:640 + padding:16px so they're fine.
+   Just ensure action bar doesn't overflow on tiny screens. */
+@media (max-width: 480px) {
+  /* RealPostCard action bar — force wrap if needed */
+  .post-actions-row { flex-wrap: wrap; gap: 4px !important; }
+}
+
+/* Analytics page — grid breakdowns */
+@media (max-width: 900px) {
+  .analytics-kpi-grid   { grid-template-columns: repeat(2,1fr) !important; }
+  .analytics-main-grid  { grid-template-columns: 1fr !important; }
+  .analytics-bottom-grid{ grid-template-columns: 1fr !important; }
+}
+@media (max-width: 500px) {
+  .analytics-kpi-grid { grid-template-columns: 1fr 1fr !important; gap: 10px !important; }
+  .analytics-wrap     { padding: 16px 12px !important; }
+}
+
+/* Profile page — cover image / avatar area */
+@media (max-width: 600px) {
+  .profile-edit-modal { padding: 20px !important; }
+}
+
+/* Explore — right panel (People to Follow) already hides via inline gridTemplateColumns swap,
+   just make the search bar full width on small screens */
+@media (max-width: 480px) {
+  .explore-wrap { padding: 16px 12px !important; }
+}
+
+/* Notifications — already maxWidth:620, just tighten padding */
+@media (max-width: 480px) {
+  .notifs-wrap { padding: 16px 12px !important; }
+}
+
+/* Messages — sidebar/chat already has mobileView logic in JS,
+   just tighten input row on tiny screens */
+@media (max-width: 400px) {
+  .msg-input-row { padding: 8px !important; }
+}

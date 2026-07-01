@@ -86,7 +86,7 @@ export default function AnalyticsPage() {
 
   return (
     <div style={{ height:'100%', overflowY:'auto', background:'var(--bg)' }}>
-      <div style={{ maxWidth:1200, margin:'0 auto', padding:'20px 20px' }}>
+      <div className="analytics-wrap" style={{ maxWidth:1200, margin:'0 auto', padding:'20px 20px' }}>
 
         {/* Header */}
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:24 }}>
@@ -116,7 +116,7 @@ export default function AnalyticsPage() {
         )}
 
         {/* KPI cards */}
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:14, marginBottom:24 }}>
+        <div className="analytics-kpi-grid" style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:14, marginBottom:24 }}>
           {kpis.map((k,i) => (
             <motion.div key={k.label} initial={{ opacity:0, y:12 }} animate={{ opacity:1, y:0 }} transition={{ delay:i*0.06 }}
               style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:14, padding:'20px 18px' }}>
@@ -137,7 +137,7 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Charts row 1 */}
-        <div style={{ display:'grid', gridTemplateColumns:'2fr 1fr', gap:16, marginBottom:16 }}>
+        <div className="analytics-main-grid" style={{ display:'grid', gridTemplateColumns:'2fr 1fr', gap:16, marginBottom:16 }}>
           <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }} transition={{ delay:0.2 }}
             style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:14, padding:20 }}>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:20 }}>
@@ -191,7 +191,7 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Charts row 2 */}
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:16 }}>
+        <div className="analytics-bottom-grid" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:16 }}>
           <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }} transition={{ delay:0.3 }}
             style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:14, padding:20 }}>
             <h3 style={{ fontFamily:'var(--font-syne), sans-serif', fontSize:15, fontWeight:700, color:'var(--text)', marginBottom:4 }}>Engagement Rate</h3>
