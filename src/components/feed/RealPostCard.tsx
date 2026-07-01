@@ -319,7 +319,8 @@ export default function RealPostCard({
         border: '1px solid var(--border)',
         borderRadius: 16,
         marginBottom: 12,
-        overflow: 'hidden'
+        overflow: 'hidden',
+        maxWidth: '100%',
       }}
     >
       {/* Header with Follow Button */}

@@ -242,7 +242,7 @@ export default function ExplorePage() {
   }
 
   return (
-    <div style={{ height:'100%', overflowY:'auto', padding:'20px 20px' }}>
+    <div className="explore-outer" style={{ height:'100%', overflowY:'auto', overflowX:'hidden', padding:'20px 16px' }}>
       {/* Search bar with flexible options */}
       <div style={{ position:'relative', maxWidth:560, margin:'0 auto 24px' }}>
         <div style={{ 
@@ -838,9 +838,12 @@ export default function ExplorePage() {
           .explore-main-grid > div:last-child {
             display: none !important;
           }
+          .explore-outer {
+            padding: 12px 10px !important;
+          }
         }
         @media (max-width: 480px) {
-          .explore-main-grid { padding: 0 !important; }
+          .explore-outer { padding: 10px 8px !important; }
         }
         /* Smooth scrollbar */
         ::-webkit-scrollbar {
