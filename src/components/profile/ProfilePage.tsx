@@ -370,10 +370,24 @@ export default function ProfilePage() {
       <motion.div
         whileHover={{ scale: 1.02, zIndex: 2 }}
         style={{ aspectRatio: '1', borderRadius: 8, overflow: 'hidden', background: 'var(--bg3)', cursor: 'pointer', position: 'relative' }}
-        onMouseEnter={() => setShowActions(true)}
-        onMouseLeave={() => setShowActions(false)}
         onClick={handleClick}
       >
+        {/* Always-visible action menu for own posts */}
+        {tab === 'posts' && (
+          <div style={{ position:'absolute', top:6, right:6, display:'flex', gap:5, zIndex:4 }}
+               onClick={e => e.stopPropagation()}>
+            <button
+              onClick={(e) => { e.stopPropagation(); setEditingPost(post); setEditContent(post.content || ''); }}
+              style={{ background:'rgba(0,0,0,.65)', border:'none', borderRadius:'50%', width:28, height:28, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'white', backdropFilter:'blur(4px)' }}>
+              <Edit3 size={13} />
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); setDeleteConfirm(post.id); }}
+              style={{ background:'rgba(0,0,0,.65)', border:'none', borderRadius:'50%', width:28, height:28, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'#ef4444', backdropFilter:'blur(4px)' }}>
+              <Trash2 size={13} />
+            </button>
+          </div>
+        )}
         {mediaUrl ? (
           <>
             {isVideo ? (
@@ -389,59 +403,7 @@ export default function ProfilePage() {
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               />
             )}
-            
-            {showActions && tab === 'posts' && (
-              <div style={{
-                position: 'absolute',
-                top: 8,
-                right: 8,
-                display: 'flex',
-                gap: 8,
-                zIndex: 3
-              }}>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setEditingPost(post);
-                    setEditContent(post.content || '');
-                  }}
-                  style={{
-                    background: 'rgba(0,0,0,.6)',
-                    border: 'none',
-                    borderRadius: '50%',
-                    width: 32,
-                    height: 32,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    color: 'white'
-                  }}
-                >
-                  <Edit3 size={14} />
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setDeleteConfirm(post.id);
-                  }}
-                  style={{
-                    background: 'rgba(0,0,0,.6)',
-                    border: 'none',
-                    borderRadius: '50%',
-                    width: 32,
-                    height: 32,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    color: '#ef4444'
-                  }}
-                >
-                  <Trash2 size={14} />
-                </button>
-              </div>
-            )}
+
 
             <div
               style={{
@@ -498,58 +460,6 @@ export default function ProfilePage() {
           </>
         ) : (
           <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', padding: 12, position: 'relative' }}>
-            {showActions && tab === 'posts' && (
-              <div style={{
-                position: 'absolute',
-                top: 8,
-                right: 8,
-                display: 'flex',
-                gap: 8,
-                zIndex: 3
-              }}>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setEditingPost(post);
-                    setEditContent(post.content || '');
-                  }}
-                  style={{
-                    background: 'rgba(0,0,0,.6)',
-                    border: 'none',
-                    borderRadius: '50%',
-                    width: 32,
-                    height: 32,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    color: 'white'
-                  }}
-                >
-                  <Edit3 size={14} />
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setDeleteConfirm(post.id);
-                  }}
-                  style={{
-                    background: 'rgba(0,0,0,.6)',
-                    border: 'none',
-                    borderRadius: '50%',
-                    width: 32,
-                    height: 32,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    color: '#ef4444'
-                  }}
-                >
-                  <Trash2 size={14} />
-                </button>
-              </div>
-            )}
             <p style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.5, flex: 1, overflow: 'hidden' }}>
               {post.content?.slice(0, 80)}{post.content?.length > 80 ? '…' : ''}
             </p>
@@ -573,7 +483,7 @@ export default function ProfilePage() {
               onClick={() => setFollowModal(null)}
               style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:300 }} />
             <motion.div key="fmodal" initial={{ opacity:0, scale:0.95 }} animate={{ opacity:1, scale:1 }} exit={{ opacity:0, scale:0.95 }}
-              style={{ position:'fixed', top:'50%', left:'50%', transform:'translate(-50%,-50%)', zIndex:301,
+              style={{ position:'fixed', top:'50%', left:'50%', x:'-50%', y:'-50%', zIndex:301,
                 background:'var(--bg2)', borderRadius:20, width:'min(420px, 92vw)', maxHeight:'70vh',
                 display:'flex', flexDirection:'column', overflow:'hidden', boxShadow:'0 20px 60px rgba(0,0,0,.4)' }}>
               <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'18px 20px', borderBottom:'1px solid var(--border)' }}>
