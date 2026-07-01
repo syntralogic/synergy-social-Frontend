@@ -166,6 +166,8 @@ export const postsAPI = {
 // ─── Users API ────────────────────────────────────────────────────────────────
 export const usersAPI = {
   getProfile:    (username: string) => apiFetch(`/users/${username}`),
+  changePassword: (currentPassword: string, newPassword: string) =>
+    apiFetch('/auth/change-password', { method: 'PUT', body: JSON.stringify({ currentPassword, newPassword }) }),
   updateProfile: (data: { fullName?: string; bio?: string; username?: string; avatar?: string; coverImage?: string }) =>
     apiFetch('/auth/profile', { method: 'PUT', body: JSON.stringify(data) }),
   follow:        (userId: string)   => apiFetch(`/users/${userId}/follow`,   { method: 'POST'   }),
