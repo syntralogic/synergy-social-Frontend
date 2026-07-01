@@ -12,10 +12,11 @@ interface Props {
 }
 
 export default function ProfileSettingsSheet({ onClose }: Props) {
-  const { currentUser, logout, setUser } = useStore(s => ({
+  const { currentUser, logout, setUser, setPage } = useStore(s => ({
     currentUser: s.currentUser,
     logout: s.logout,
     setUser: s.setUser,
+    setPage: s.setPage,
   }));
 
   const [sheet, setSheet] = useState<Sheet>('main');
@@ -140,8 +141,10 @@ export default function ProfileSettingsSheet({ onClose }: Props) {
           {/* ── MAIN SHEET ── */}
           {sheet === 'main' && (
             <>
-              {/* Profile card */}
-              <div style={{ background: 'var(--bg3)', borderRadius: 16, padding: '16px', display: 'flex', alignItems: 'center', gap: 14, marginBottom: 8 }}>
+              {/* Profile card — tap to view full profile */}
+              <button
+                onClick={() => { setPage('profile' as any); onClose(); }}
+                style={{ background: 'var(--bg3)', borderRadius: 16, padding: '16px', display: 'flex', alignItems: 'center', gap: 14, marginBottom: 8, width: '100%', border: '1.5px solid var(--border)', cursor: 'pointer', textAlign: 'left' }}>
                 {avatar ? (
                   <img src={avatar} alt="" style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover' }} />
                 ) : (
@@ -154,7 +157,8 @@ export default function ProfileSettingsSheet({ onClose }: Props) {
                   <div style={{ fontSize: 13, color: 'var(--text3)', marginTop: 2 }}>@{currentUser?.username}</div>
                   <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{currentUser?.email}</div>
                 </div>
-              </div>
+                <ChevronRight size={16} color="var(--accent)" style={{ flexShrink: 0 }} />
+              </button>
 
               {/* Options */}
               {[
